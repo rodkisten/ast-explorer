@@ -2,12 +2,25 @@
 
 Production: https://ast.migos.club
 
-PR preview #123: https://pr123-dev.ast.migos.club
+Preview for PR #123: https://pr123-dev.ast.migos.club
 
-GitHub Actions builds on main and PR updates; on PR close (including merge), cleanup removes the custom domain and preview Worker. Preview worker names are deterministic: ast-pr-N.
+On main push deploy production; on PR update deploy a dedicated ast-pr-N Worker; on PR close or merge remove the Worker and custom domain.
 
-Required repository secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_ZONE_ID. Token permissions: Workers Scripts Edit and Workers Routes/Custom Domains Edit for migos.club.
+## Secrets
 
-This is an initial integration: verify the cf CLI correctly discovers the Nuxt static build (.output/public) and deploys the assets before merging. The AST Explorer requires COOP same-origin and COEP require-corp headers for Oxc; verify those response headers in both environments. No production deployment has been performed.
+Set CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_ZONE_ID in GitHub Actions secrets. The Cloudflare token needs Workers deployment and Custom Domains permissions.
 
-Run: pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm generate
+## Validation
+
+```sh
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm typecheck
+pnpm generate
+test -f .output/public/index.html
+test -f .output/public/_headers
+```
+
+The public/_headers file preserves COOP same-origin and COEP require-corp required for Oxc SharedArrayBuffer. Validate the actual published headers and parser behavior.
+
+This integration remains a draft until a preview build, deploy, and cleanup are confirmed. Never execute untrusted fork PR code with Cloudflare credentials.
