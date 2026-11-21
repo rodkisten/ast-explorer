@@ -99,6 +99,8 @@ jobs:
       - name: 📦 Setup pnpm (auto)
         if: steps.detect-pm.outputs.pm == 'pnpm'
         uses: pnpm/action-setup@v4
+        with:
+          version: 12
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
