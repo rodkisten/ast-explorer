@@ -1,6 +1,6 @@
 import type { MonacoLanguage } from '~/parser'
 
-const identifierPattern = /^[$a-z_][$\\w]*$/i
+const identifierPattern = /^[$a-z_][$a-z_0-9]*$/i
 
 export type TransformLanguage = 'javascript' | 'typescript' | 'css'
 export interface TransformRule {
