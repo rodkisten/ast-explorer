@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/wrangler.json",
+  "name": "ast-explorer",
+  "compatibility_date": "2026-11-20",
+  "assets": {
+    "directory": "./.output/public",
+    "not_found_handling": "single-page-application"
+  }
+}

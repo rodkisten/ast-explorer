@@ -304,3 +304,7 @@ Also, thanks to the following projects for their contributions:
 ## License
 
 [AGPL-3.0](./LICENSE) License © 2023-PRESENT [三咲智子](https://github.com/sxzz)
+
+## Fork development workboard
+
+This fork's active implementation plan, editor abstraction roadmap, and delivery status are maintained in [docs/WORKBOARD.md](docs/WORKBOARD.md). Cloudflare deployment and PR preview instructions are in [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md).

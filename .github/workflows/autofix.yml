@@ -1,11 +1,24 @@
-name: autofix.ci
+name: Formatting Check
 
-on: [pull_request]
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  autofix:
-    uses: sxzz/workflows/.github/workflows/autofix.yml@main
-    with:
-      command: pnpm run lint --fix && pnpm run format
-    permissions:
-      contents: read
+  formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+      - name: Install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.21.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Check lint
+        run: pnpm lint
