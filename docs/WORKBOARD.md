@@ -67,10 +67,10 @@ Keep provider-specific code behind adapters. No direct Monaco imports in AST tre
 
 | Area | Target | Status |
 | --- | --- | --- |
-| Production | `ast.migos.club` | Blocked: Cloudflare CI not yet green |
+| Production | `ast.migos.club` | Pending Wrangler deployment validation |
 | PR preview | `pr<NUMBER>-dev.ast.migos.club` | Implemented provisionally; not validated |
 | Preview cleanup | Delete custom domain and Worker on PR close/merge | Implemented provisionally; not validated |
-| Nuxt build | Static `.output/public` with Cloudflare output | Needs real deployment validation |
+| Nuxt build | Static `.output/public` with Cloudflare output | Nuxt generate passed; Wrangler deployment pending |
 | Cross-origin isolation | COOP same-origin and COEP require-corp | `public/_headers` added; verify HTTP responses |
 | CI setup | Node 24.15.0 and pnpm 12.21.0 | Setup fixed in PR #2 |
 | Formatting | ESLint / Prettier / YAML | Fixing in PR #2 |
@@ -84,7 +84,7 @@ Keep provider-specific code behind adapters. No direct Monaco imports in AST tre
 - [x] Add static isolation headers (PR #1).
 - [x] Replace failing pnpm bootstrap with pinned Corepack setup (PR #2).
 - [ ] Get Cloudflare, lint and autofix workflows green.
-- [ ] Verify actual generated Nuxt assets and Cloudflare packaging.
+- [x] Verify Nuxt static generation in CI.\n- [ ] Verify Wrangler static assets deployment and custom domain attachment.
 - [ ] Confirm production domain and HTTP isolation headers.
 - [ ] Confirm PR preview URL and deletion on close.
 - [ ] Ensure external fork PRs never receive privileged credentials.

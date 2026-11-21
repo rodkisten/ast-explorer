@@ -38,14 +38,19 @@ jobs:
           test -f .output/public/_headers
           grep -q 'Cross-Origin-Embedder-Policy: require-corp' .output/public/_headers
           grep -q 'Cross-Origin-Opener-Policy: same-origin' .output/public/_headers
-      - run: npm install --global cf
-      - run: cf build
+      - name: Install Wrangler
+        run: npm install --global wrangler
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           AST_PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: cf deploy
+        run: |
+          WORKER_NAME=ast-explorer
+          if [ -n "$AST_PR_NUMBER" ]; then
+            WORKER_NAME="ast-pr-$AST_PR_NUMBER"
+          fi
+          wrangler deploy --name "$WORKER_NAME"
       - name: Attach domain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
