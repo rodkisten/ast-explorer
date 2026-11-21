@@ -22,7 +22,7 @@ on:
           - uninstall
           - custom
       packages:
-        description: 'Package list (for add/uninstall, e.g. "zod axios -D")'
+        description: 'Package list (supports chained commands, e.g. "pnpm add zod && pnpm add -D @types/node")'
         type: string
         required: false
         default: ''
@@ -126,38 +126,66 @@ jobs:
             echo "⚠️ Warning: 'custom-command' is ignored because operation is '$OP'."
           fi
 
-          # Remove prefixos como "pnpm add", "npm install", "npm i", "yarn add", etc.
-          shopt -s extglob
-          PKGS="${PKGS##*( )(pnpm|npm|yarn|bun)+( )(add|install|i|remove|uninstall|rm|update|up)+( )}"
-          echo "cleaned_pkgs=${PKGS:-none}" >> "$GITHUB_OUTPUT"
+          # Normaliza travessões (—dev ou –dev -> --dev), barras invertidas (\) e separadores (&& ou ;) em quebras de linha
+          CLEANED_COMMANDS=$(printf '%s\n' "$PKGS" | sed -E '
+            s/[—–]/--/g;
+            s/\\/\n/g;
+            s/(&&|;)/\n/g;
+          ' | sed -E '
+            s/^[[:space:]]*(pnpm|npm|yarn|bun)[[:space:]]+(add|install|i|remove|uninstall|rm|update|up)[[:space:]]+//;
+            s/^[[:space:]]+|[[:space:]]+$//g;
+          ' | sed '/^$/d')
+
+          # Salva uma versão em linha única para exibir no Summary
+          SUMMARY_PKGS=$(echo "$CLEANED_COMMANDS" | paste -sd " | " -)
+          echo "cleaned_pkgs=${SUMMARY_PKGS:-none}" >> "$GITHUB_OUTPUT"
 
           # Validação da lista de pacotes para add e uninstall
           if [ "$OP" = "add" ] || [ "$OP" = "uninstall" ]; then
-            if [ -z "$PKGS" ]; then
+            if [ -z "$CLEANED_COMMANDS" ]; then
               echo "❌ Error: 'packages' list is required for '$OP' operation."
               exit 1
             fi
           fi
 
-          # Execução com pnpm
-          if [ "$PM" = "pnpm" ]; then
-            if [ "$OP" = "install" ]; then
-              pnpm install --frozen-lockfile
+          # Caso não tenha pacotes (ex: operation = install ou update geral)
+          if [ -z "$CLEANED_COMMANDS" ]; then
+            if [ "$PM" = "pnpm" ]; then
+              if [ "$OP" = "install" ]; then
+                pnpm install --frozen-lockfile
+              else
+                pnpm "$OP"
+              fi
             else
-              pnpm "$OP" $PKGS
+              if [ "$OP" = "install" ]; then
+                npm ci --legacy-peer-deps --no-audit --no-fund
+              else
+                npm "$OP" --legacy-peer-deps --no-audit --no-fund
+              fi
             fi
-
-          # Execução com npm
           else
-            if [ "$OP" = "install" ]; then
-              npm ci --legacy-peer-deps --no-audit --no-fund
-            elif [ "$OP" = "add" ]; then
-              npm install $PKGS --legacy-peer-deps --no-audit --no-fund
-            elif [ "$OP" = "uninstall" ]; then
-              npm uninstall $PKGS --legacy-peer-deps --no-audit --no-fund
-            else
-              npm update $PKGS --legacy-peer-deps --no-audit --no-fund
-            fi
+            # Executa cada linha/bloco de pacotes limpo separadamente
+            while IFS= read -r LINE; do
+              [ -z "$LINE" ] && continue
+              echo "📦 Running $PM $OP $LINE"
+              if [ "$PM" = "pnpm" ]; then
+                if [ "$OP" = "install" ]; then
+                  pnpm install --frozen-lockfile
+                else
+                  pnpm "$OP" $LINE
+                fi
+              else
+                if [ "$OP" = "install" ]; then
+                  npm ci --legacy-peer-deps --no-audit --no-fund
+                elif [ "$OP" = "add" ]; then
+                  npm install $LINE --legacy-peer-deps --no-audit --no-fund
+                elif [ "$OP" = "uninstall" ]; then
+                  npm uninstall $LINE --legacy-peer-deps --no-audit --no-fund
+                else
+                  npm update $LINE --legacy-peer-deps --no-audit --no-fund
+                fi
+              fi
+            done <<< "$CLEANED_COMMANDS"
           fi
 
       - name: 💾 Commit changes
@@ -224,7 +252,7 @@ jobs:
 
             if (OP !== 'custom' && RAW_PKGS && RAW_PKGS.trim() !== CLEANED_PKGS) {
               summary.addQuote(
-                `Input sanitizado automaticamente: "${RAW_PKGS}" → "${CLEANED_PKGS}"`,
+                `Input sanitizado automaticamente: "${RAW_PKGS.replace(/\n/g, ' ')}" → "${CLEANED_PKGS}"`,
                 'Auto-Sanitizer'
               );
             }
