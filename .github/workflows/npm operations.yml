@@ -27,10 +27,19 @@ on:
         required: false
         default: ''
       custom-command:
-        description: 'Any shell command (ONLY used when operation is "custom")'
+        description: 'Any shell command (used in "custom" mode or when order is before/after)'
         type: string
         required: false
         default: ''
+      custom-command-order:
+        description: 'When to run custom-command relative to package operation'
+        type: choice
+        required: false
+        default: 'none'
+        options:
+          - none
+          - before
+          - after
 
 permissions:
   contents: write
@@ -90,8 +99,6 @@ jobs:
       - name: 📦 Setup pnpm (auto)
         if: steps.detect-pm.outputs.pm == 'pnpm'
         uses: pnpm/action-setup@v4
-        with:
-          version: 12
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -107,10 +114,11 @@ jobs:
           OP: ${{ inputs.operation }}
           PKGS: ${{ inputs.packages }}
           CMD: ${{ inputs.custom-command }}
+          CMD_ORDER: ${{ inputs.custom-command-order }}
         run: |
           set -euo pipefail
 
-          # Modo Custom (qualquer comando de shell)
+          # 1. Modo exclusivamente Custom
           if [ "$OP" = "custom" ]; then
             if [ -z "$CMD" ]; then
               echo "❌ Error: 'custom-command' is required when operation is 'custom'."
@@ -123,12 +131,23 @@ jobs:
             exit 0
           fi
 
-          # Aviso se custom-command foi preenchido fora do modo custom
-          if [ -n "$CMD" ]; then
-            echo "⚠️ Warning: 'custom-command' is ignored because operation is '$OP'."
+          # 2. Validação do custom-command-order em operações de pacote
+          if [ "$CMD_ORDER" != "none" ] && [ -z "$CMD" ]; then
+            echo "❌ Error: 'custom-command' cannot be empty when 'custom-command-order' is set to '$CMD_ORDER'."
+            exit 1
           fi
 
-          # Normaliza travessões (—dev ou –dev -> --dev), barras invertidas (\) e separadores (&& ou ;) em quebras de linha
+          if [ "$CMD_ORDER" = "none" ] && [ -n "$CMD" ]; then
+            echo "⚠️ Warning: 'custom-command' is ignored because 'custom-command-order' is 'none'."
+          fi
+
+          # 3. Executa custom-command ANTES (se selecionado)
+          if [ "$CMD_ORDER" = "before" ]; then
+            echo "⏮️ Executing custom shell command BEFORE '$OP': $CMD"
+            eval "$CMD"
+          fi
+
+          # 4. Normaliza travessões (—dev ou –dev -> --dev), barras invertidas (\) e separadores (&& ou ;) em quebras de linha
           CLEANED_COMMANDS=$(printf '%s\n' "$PKGS" | sed -E '
             s/[—–]/--/g;
             s/\\/\n/g;
@@ -150,7 +169,7 @@ jobs:
             fi
           fi
 
-          # Caso não tenha pacotes (ex: operation = install ou update geral)
+          # 5. Executa operação de pacotes (sem pacotes explícitos)
           if [ -z "$CLEANED_COMMANDS" ]; then
             if [ "$PM" = "pnpm" ]; then
               if [ "$OP" = "install" ]; then
@@ -165,8 +184,8 @@ jobs:
                 npm "$OP" --legacy-peer-deps --no-audit --no-fund
               fi
             fi
+          # Executa cada linha/bloco de pacotes limpo separadamente
           else
-            # Executa cada linha/bloco de pacotes limpo separadamente
             while IFS= read -r LINE; do
               [ -z "$LINE" ] && continue
               echo "📦 Running $PM $OP $LINE"
@@ -188,6 +207,12 @@ jobs:
                 fi
               fi
             done <<< "$CLEANED_COMMANDS"
+          fi
+
+          # 6. Executa custom-command DEPOIS (se selecionado)
+          if [ "$CMD_ORDER" = "after" ]; then
+            echo "⏭️ Executing custom shell command AFTER '$OP': $CMD"
+            eval "$CMD"
           fi
 
       - name: 💾 Commit changes
@@ -225,16 +250,13 @@ jobs:
           RAW_PKGS: ${{ inputs.packages }}
           CLEANED_PKGS: ${{ steps.run-op.outputs.cleaned_pkgs || 'none' }}
           CUSTOM_CMD: ${{ inputs.custom-command }}
+          CMD_ORDER: ${{ inputs.custom-command-order }}
           CHANGED: ${{ steps.generated_output.outputs.changed || 'false' }}
           JOB_STATUS: ${{ job.status }}
         with:
           script: |
-            const { BRANCH, PM, OP, RAW_PKGS, CLEANED_PKGS, CUSTOM_CMD, CHANGED, JOB_STATUS } = process.env;
+            const { BRANCH, PM, OP, RAW_PKGS, CLEANED_PKGS, CUSTOM_CMD, CMD_ORDER, CHANGED, JOB_STATUS } = process.env;
             const isSuccess = JOB_STATUS === 'success';
-
-            const targetDetail = OP === 'custom'
-              ? `<code>${CUSTOM_CMD}</code>`
-              : `<code>${CLEANED_PKGS}</code>`;
 
             const rows = [
               [
@@ -243,10 +265,20 @@ jobs:
               ],
               ['🌿 Branch', `<code>${BRANCH}</code>`],
               ['📦 Package Manager', `<code>${PM}</code>`],
-              ['⚙️ Operação', `<code>${OP}</code>`],
-              [OP === 'custom' ? '💻 Comando' : '📋 Pacotes / Flags', targetDetail],
-              ['💾 Alterações Commitadas', CHANGED === 'true' ? '✅ Sim (push realizado)' : '➖ Nenhuma alteração']
+              ['⚙️ Operação', `<code>${OP}</code>`]
             ];
+
+            if (OP === 'custom') {
+              rows.push(['💻 Comando Custom', `<code>${CUSTOM_CMD}</code>`]);
+            } else {
+              rows.push(['📋 Pacotes / Flags', `<code>${CLEANED_PKGS}</code>`]);
+              if (CMD_ORDER !== 'none' && CUSTOM_CMD) {
+                const timingLabel = CMD_ORDER === 'before' ? '⏮️ Antes (before)' : '⏭️ Depois (after)';
+                rows.push([`💻 Shell (${timingLabel})`, `<code>${CUSTOM_CMD}</code>`]);
+              }
+            }
+
+            rows.push(['💾 Alterações Commitadas', CHANGED === 'true' ? '✅ Sim (push realizado)' : '➖ Nenhuma alteração']);
 
             const summary = core.summary
               .addHeading(`🥊 Package & Shell Operations — ${isSuccess ? 'Sucesso ✅' : 'Falha ❌'}`, 2)
