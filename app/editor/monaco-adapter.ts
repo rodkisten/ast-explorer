@@ -1,6 +1,5 @@
 import type * as Monaco from 'monaco-editor'
-import type { EditorAdapter, EditorDiagnostic, EditorSelection } from '~/editor/adapter'
-import type { MonacoLanguage } from '~/parser'
+import type { EditorAdapter, EditorSelection } from '~/editor/adapter'
 
 export function createMonacoAdapter(editor: Monaco.editor.IStandaloneCodeEditor): EditorAdapter {
   const model = () => editor.getModel()
@@ -27,10 +26,10 @@ export function createMonacoAdapter(editor: Monaco.editor.IStandaloneCodeEditor)
       })
     },
     focus: () => editor.focus(),
-    setLanguage: (_language: MonacoLanguage) => {
+    setLanguage: () => {
       // The Vue Monaco host owns the language lifecycle.
     },
-    setDiagnostics: (_diagnostics: EditorDiagnostic[]) => {
+    setDiagnostics: () => {
       // Diagnostics are provided by the parser integration.
     },
     dispose: () => {

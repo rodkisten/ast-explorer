@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, shallowRef, watch, watchEffect } from 'vue'
 import Loading from '~/components/Loading.vue'
 import { loadedMonaco, useMonacoLanguage } from '~/composables/monaco'
 import {
@@ -30,6 +30,11 @@ defineExpose({ adapter })
 
 const options = computed(() => getSharedMonacoOptions())
 const editorLanguage = useMonacoLanguage(() => props.language)
+
+onBeforeUnmount(() => {
+  adapter.value?.dispose()
+  adapter.value = undefined
+})
 
 watch(
   () => container.value?.$editor,

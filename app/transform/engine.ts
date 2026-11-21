@@ -41,6 +41,8 @@ export async function transformSource(
   rulesSource: string,
 ): Promise<TransformResult> {
   const rules = parseRules(rulesSource)
+  if (rules.length === 0)
+    return { output: input, diagnostics: [] }
   if (language === 'css') {
     const { default: postcss } = await import('postcss')
     const root = postcss.parse(input)
@@ -62,6 +64,12 @@ export async function transformSource(
     language === 'typescript' ? ts.ScriptKind.TS : ts.ScriptKind.JS,
   )
   const edits: Array<{ start: number, end: number, replace: string }> = []
+  const diagnostics: string[] = []
+  const parseDiagnostics = (sourceFile as typeof sourceFile & { parseDiagnostics?: readonly import('typescript').Diagnostic[] }).parseDiagnostics
+  for (const diagnostic of parseDiagnostics ?? [])
+    diagnostics.push(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\\n'))
+  if (diagnostics.length)
+    return { output: input, diagnostics }
   const visit = (node: import('typescript').Node) => {
     if (ts.isIdentifier(node)) {
       const rule = rules.find((item) => item.find === node.text)
@@ -79,6 +87,6 @@ export async function transformSource(
     output = output.slice(0, edit.start) + edit.replace + output.slice(edit.end)
   return {
     output,
-    diagnostics: [],
+    diagnostics,
   }
 }
