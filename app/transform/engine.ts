@@ -1,5 +1,7 @@
 import type { MonacoLanguage } from '~/parser'
 
+const identifierPattern = /^[$a-z_][$\\w]*$/i
+
 export type TransformLanguage = 'javascript' | 'typescript' | 'css'
 export interface TransformRule {
   find: string
@@ -64,7 +66,7 @@ export async function transformSource(
     if (ts.isIdentifier(node)) {
       const rule = rules.find((item) => item.find === node.text)
       if (rule) {
-        if (!/^[$A-Z_a-z][$\w]*$/.test(rule.replace))
+        if (!identifierPattern.test(rule.replace))
           throw new TypeError(`Invalid JavaScript identifier: ${rule.replace}`)
         edits.push({ start: node.getStart(sourceFile), end: node.getEnd(), replace: rule.replace })
       }
@@ -73,7 +75,7 @@ export async function transformSource(
   }
   visit(sourceFile)
   let output = input
-  for (const edit of edits.sort((a, b) => b.start - a.start))
+  for (const edit of edits.toSorted((a, b) => b.start - a.start))
     output = output.slice(0, edit.start) + edit.replace + output.slice(edit.end)
   return {
     output,

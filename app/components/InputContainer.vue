@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import AppTooltip from '~/components/AppTooltip.vue'
 import CodeEditor from '~/components/CodeEditor.vue'
 import EditorSettings from '~/components/EditorSettings.vue'
 import TransformWorkspace from '~/components/TransformWorkspace.vue'
-import { ref } from 'vue'
 import { code, showEditorSettings } from '~/state/editor'
 import { parserOptions } from '~/state/parser/options'
 import { currentParser } from '~/state/parser/parser'
