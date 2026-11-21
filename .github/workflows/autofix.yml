@@ -20,5 +20,5 @@ jobs:
           corepack enable
           corepack prepare pnpm@12.21.0 --activate
       - run: pnpm install --frozen-lockfile
-      - name: Check formatting
-        run: pnpm exec prettier --check .
+      - name: Check lint
+        run: pnpm lint
