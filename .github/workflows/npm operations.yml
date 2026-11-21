@@ -47,75 +47,6 @@ jobs:
       branch: ${{ steps.generated_output.outputs.branch }}
     runs-on: ubuntu-latest
     steps:
-      - name: Kitchen Sink - GitHub Summary Markdown
-       uses: actions/github-script@v7
-       with:
-       script: |
-        await core.summary
-          // 1. Títulos (níveis 1 a 6, padrão é 1)
-          .addHeading('Relatório Completo (Kitchen Sink) 🚀', 1)
-          .addHeading('Subtítulo de Seção', 2)
-
-          // 2. Textos e parágrafos
-          .addRaw('Texto puro sem quebra de linha automática. ')
-          .addRaw('Texto com quebra de linha (EOL) no final.', true)
-          .addBreak() // Adiciona uma linha em branco (<br>)
-          .addEOL()   // Adiciona apenas um caractere de nova linha (\n)
-
-          // 3. Citações (Blockquotes) e Separadores
-          .addQuote('Deploy realizado com sucesso em produção.', 'Autor ou Fonte (opcional)')
-          .addSeparator() // Linha horizontal (<hr>)
-
-          // 4. Links e Imagens
-          .addLink('Acessar Documentação do GitHub', 'https://github.com')
-          .addBreak()
-          .addImage(
-            'https://githubassets.com',
-            'Logo do GitHub',
-            { width: '64', height: '64' } // Opções de dimensão
-          )
-
-          // 5. Listas (false = não ordenada / bullets, true = ordenada / numerada)
-          .addHeading('Checklist de Verificação', 3)
-          .addList(['Lint aprovado', 'Testes unitários OK', 'Build gerado'], false)
-          .addList(['Primeiro passo', 'Segundo passo', 'Terceiro passo'], true)
-
-          // 6. Blocos de Código (com syntax highlighting)
-          .addHeading('Exemplo de Payload', 3)
-          .addCodeBlock(
-            JSON.stringify({ status: 'ok', version: '2.1.0', env: 'prod' }, null, 2),
-            'json'
-          )
-
-          // 7. Tabelas (suporta células simples ou objetos com header, colspan e rowspan)
-          .addHeading('Métricas dos Serviços', 3)
-          .addTable([
-            [
-              { data: 'Serviço', header: true },
-              { data: 'Latência', header: true },
-              { data: 'Status', header: true }
-            ],
-            ['Auth API', '45ms', '✅ Online'],
-            ['Billing Worker', '120ms', '⚠️ Lento'],
-            [{ data: 'Todos os sistemas monitorados via Prometheus', colspan: '3' }]
-          ])
-
-          // 8. Acordeão / Seção expansível (<details>)
-          .addDetails(
-            'Clique para ver os logs brutos',
-            'INFO [2026-11-19]: Processo finalizado em 1.42s sem erros.'
-          )
-
-          // 9. Métodos de controle e saída
-          // .stringify() -> Retorna a string gerada sem salvar ainda (útil para comentar em PRs)
-          // .isEmptyBuffer() -> Retorna true/false se o buffer estiver vazio
-          // .emptyBuffer() -> Limpa tudo o que foi montado antes de escrever
-          // .clear() -> Apaga o arquivo de resumo existente e limpa o buffer
-          .write() // Grava no $GITHUB_STEP_SUMMARY (use { overwrite: true } para sobrescrever)
-
-
-
-
       - name: 🔑 Authenticate Rod GitHub App
         id: app-token
         uses: actions/create-github-app-token@v2
@@ -128,6 +59,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ inputs.selected-branch || github.ref_name }}
           fetch-depth: 0
           persist-credentials: true
 
@@ -166,6 +98,7 @@ jobs:
           cache: ${{ steps.detect-pm.outputs.pm }}
 
       - name: 🥊 Run ${{ inputs.operation }}
+        id: run-op
         shell: bash
         env:
           PM: ${{ steps.detect-pm.outputs.pm }}
@@ -174,7 +107,7 @@ jobs:
           CMD: ${{ inputs.custom-command }}
         run: |
           set -euo pipefail
-          
+
           # Modo Custom (qualquer comando de shell)
           if [ "$OP" = "custom" ]; then
             if [ -z "$CMD" ]; then
@@ -182,6 +115,7 @@ jobs:
               exit 1
             fi
             [ -n "$PKGS" ] && echo "⚠️ Warning: 'packages' input is ignored in 'custom' mode."
+            echo "cleaned_pkgs=N/A (custom)" >> "$GITHUB_OUTPUT"
             echo "🥊 Executing custom shell command: $CMD"
             eval "$CMD"
             exit 0
@@ -192,10 +126,10 @@ jobs:
             echo "⚠️ Warning: 'custom-command' is ignored because operation is '$OP'."
           fi
 
-
+          # Remove prefixos como "pnpm add", "npm install", "npm i", "yarn add", etc.
           shopt -s extglob
-          PKGS="${PKGS##*( )(pnpm|npm|yarn|bun)+( )(add|install|i|remove|uninstall|rm)+( )}"
-
+          PKGS="${PKGS##*( )(pnpm|npm|yarn|bun)+( )(add|install|i|remove|uninstall|rm|update|up)+( )}"
+          echo "cleaned_pkgs=${PKGS:-none}" >> "$GITHUB_OUTPUT"
 
           # Validação da lista de pacotes para add e uninstall
           if [ "$OP" = "add" ] || [ "$OP" = "uninstall" ]; then
@@ -209,8 +143,6 @@ jobs:
           if [ "$PM" = "pnpm" ]; then
             if [ "$OP" = "install" ]; then
               pnpm install --frozen-lockfile
-            elif [ "$OP" = "add" ] || [ "$OP" = "uninstall" ]; then
-              pnpm "$OP" $PKGS
             else
               pnpm "$OP" $PKGS
             fi
@@ -238,19 +170,63 @@ jobs:
         run: |
           set -euo pipefail
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
-          
+
           if [ -z "$(git status --porcelain)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "✅ No files changed." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          
+
           git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
-          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@://github.com"
-          
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
           git add -A
           git commit -m "chore: run $OP ($PM)"
           git push origin "HEAD:$BRANCH"
-          
+
           echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "🥊 Executed $OP and pushed changes to $BRANCH." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 📊 Generate Job Summary
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          BRANCH: ${{ inputs.selected-branch || github.ref_name }}
+          PM: ${{ steps.detect-pm.outputs.pm || 'N/A' }}
+          OP: ${{ inputs.operation }}
+          RAW_PKGS: ${{ inputs.packages }}
+          CLEANED_PKGS: ${{ steps.run-op.outputs.cleaned_pkgs || 'none' }}
+          CUSTOM_CMD: ${{ inputs.custom-command }}
+          CHANGED: ${{ steps.generated_output.outputs.changed || 'false' }}
+          JOB_STATUS: ${{ job.status }}
+        with:
+          script: |
+            const { BRANCH, PM, OP, RAW_PKGS, CLEANED_PKGS, CUSTOM_CMD, CHANGED, JOB_STATUS } = process.env;
+            const isSuccess = JOB_STATUS === 'success';
+
+            const targetDetail = OP === 'custom'
+              ? `<code>${CUSTOM_CMD}</code>`
+              : `<code>${CLEANED_PKGS}</code>`;
+
+            const rows = [
+              [
+                { data: 'Parâmetro', header: true },
+                { data: 'Valor', header: true }
+              ],
+              ['🌿 Branch', `<code>${BRANCH}</code>`],
+              ['📦 Package Manager', `<code>${PM}</code>`],
+              ['⚙️ Operação', `<code>${OP}</code>`],
+              [OP === 'custom' ? '💻 Comando' : '📋 Pacotes / Flags', targetDetail],
+              ['💾 Alterações Commitadas', CHANGED === 'true' ? '✅ Sim (push realizado)' : '➖ Nenhuma alteração']
+            ];
+
+            const summary = core.summary
+              .addHeading(`🥊 Package & Shell Operations — ${isSuccess ? 'Sucesso ✅' : 'Falha ❌'}`, 2)
+              .addTable(rows);
+
+            if (OP !== 'custom' && RAW_PKGS && RAW_PKGS.trim() !== CLEANED_PKGS) {
+              summary.addQuote(
+                `Input sanitizado automaticamente: "${RAW_PKGS}" → "${CLEANED_PKGS}"`,
+                'Auto-Sanitizer'
+              );
+            }
+
+            await summary.write();
