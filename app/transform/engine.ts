@@ -67,7 +67,7 @@ export async function transformSource(
   const diagnostics: string[] = []
   const parseDiagnostics = (sourceFile as typeof sourceFile & { parseDiagnostics?: readonly import('typescript').Diagnostic[] }).parseDiagnostics
   for (const diagnostic of parseDiagnostics ?? [])
-    diagnostics.push(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\\n'))
+    diagnostics.push(ts.flattenDiagnosticMessageText(diagnostic.messageText, String.raw`\n`))
   if (diagnostics.length)
     return { output: input, diagnostics }
   const visit = (node: import('typescript').Node) => {

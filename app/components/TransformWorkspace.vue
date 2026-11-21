@@ -12,6 +12,9 @@ const output = ref('')
 const diagnostics = ref<string[]>([])
 const busy = ref(false)
 const dirty = ref(false)
+const previewSource = ref('')
+const previewRules = ref('')
+const previewLanguage = ref<MonacoLanguage>()
 const supported = computed(() => supportsTransform(props.language))
 let generation = 0
 
@@ -25,7 +28,10 @@ async function run() {
     if (id !== generation) return
     output.value = result.output
     diagnostics.value = result.diagnostics
-    dirty.value = true
+    previewSource.value = code.value
+    previewRules.value = rules.value
+    previewLanguage.value = props.language
+    dirty.value = result.diagnostics.length === 0
   } catch (error) {
     if (id !== generation) return
     diagnostics.value = [error instanceof Error ? error.message : String(error)]
@@ -36,7 +42,7 @@ async function run() {
 }
 
 function apply() {
-  if (!dirty.value || diagnostics.value.length) return
+  if (!dirty.value || diagnostics.value.length || code.value !== previewSource.value || rules.value !== previewRules.value || props.language !== previewLanguage.value) return
   code.value = output.value
   dirty.value = false
 }
@@ -59,7 +65,7 @@ watch([code, () => props.language, rules], () => {
       <button pill-button :disabled="!supported || busy" @click="run">
         {{ busy ? 'Running…' : 'Run transform' }}
       </button>
-      <button pill-button :disabled="!dirty || diagnostics.length > 0" @click="apply">
+      <button pill-button :disabled="!dirty || diagnostics.length > 0 || code !== previewSource || rules !== previewRules || language !== previewLanguage" @click="apply">
         Apply
       </button>
       <button aria-label="Close transform workspace" nav-button @click="emit('close')">
@@ -79,6 +85,7 @@ watch([code, () => props.language, rules], () => {
         <CodeEditor v-model="output" :language="language" flex-1 min-h-0 />
       </div>
     </div>
+    <p v-if="dirty" px3 py1 text-xs text-soft>Preview ready. Apply updates the source editor and AST.</p>
     <div v-if="diagnostics.length" role="alert" px3 py2 text-sm text-red-600 dark:text-red-400>
       <div v-for="(message, index) in diagnostics" :key="index">{{ message }}</div>
     </div>
