@@ -77,8 +77,6 @@ export async function transformSource(
     output = output.slice(0, edit.start) + edit.replace + output.slice(edit.end)
   return {
     output,
-    diagnostics: sourceFile.parseDiagnostics.map((item) =>
-      ts.flattenDiagnosticMessageText(item.messageText, '\n'),
-    ),
+    diagnostics: [],
   }
 }
