@@ -10,6 +10,8 @@ import {
 } from '~/state/editor'
 import { MonacoEditor } from '#components'
 import type * as Monaco from 'monaco-editor'
+import { createMonacoAdapter } from '~/editor/monaco-adapter'
+import type { EditorAdapter } from '~/editor/adapter'
 import type { MonacoLanguage } from '~/parser'
 
 const props = defineProps<{
@@ -22,6 +24,10 @@ const container = shallowRef<{
   $editor: Monaco.editor.IStandaloneCodeEditor | undefined
 }>()
 
+const adapter = shallowRef<EditorAdapter>()
+
+defineExpose({ adapter })
+
 const options = computed(() => getSharedMonacoOptions())
 const editorLanguage = useMonacoLanguage(() => props.language)
 
@@ -29,6 +35,7 @@ watch(
   () => container.value?.$editor,
   (editor) => {
     if (!editor) return
+    adapter.value = createMonacoAdapter(editor)
     const monaco = loadedMonaco.value!
 
     editor.addAction({

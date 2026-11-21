@@ -16,14 +16,14 @@ export interface EditorDiagnostic {
 
 export interface EditorAdapter {
   readonly provider: EditorProvider
-  getValue(): string
-  setValue(value: string): void
-  getSelection(): EditorSelection
-  setSelection(selection: EditorSelection): void
-  focus(): void
-  setLanguage(language: MonacoLanguage): void
-  setDiagnostics(diagnostics: EditorDiagnostic[]): void
-  dispose(): void
+  getValue: () => string
+  setValue: (value: string) => void
+  getSelection: () => EditorSelection
+  setSelection: (selection: EditorSelection) => void
+  focus: () => void
+  setLanguage: (language: MonacoLanguage) => void
+  setDiagnostics: (diagnostics: EditorDiagnostic[]) => void
+  dispose: () => void
 }
 
 export interface EditorProviderDefinition {

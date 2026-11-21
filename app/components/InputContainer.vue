@@ -5,6 +5,7 @@ import CodeEditor from '~/components/CodeEditor.vue'
 import EditorSettings from '~/components/EditorSettings.vue'
 import TransformWorkspace from '~/components/TransformWorkspace.vue'
 import { code, showEditorSettings } from '~/state/editor'
+import { editorProvider } from '~/state/editor-provider'
 import { parserOptions } from '~/state/parser/options'
 import { currentParser } from '~/state/parser/parser'
 
@@ -35,6 +36,12 @@ function showSettings() {
     >
       {{ showTransforms ? 'Hide transforms' : 'Transforms' }}
     </button>
+    <label absolute left-32 top-2 z-100 flex items-center gap1 text-xs>
+      <span>Editor</span>
+      <select v-model="editorProvider" aria-label="Editor provider" rounded border border-base bg-base px2 py1>
+        <option value="monaco">Monaco</option>
+      </select>
+    </label>
     <AppTooltip text="Editor Settings">
       <button
         aria-label="Editor Settings"
