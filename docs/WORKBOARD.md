@@ -83,7 +83,7 @@ Keep provider-specific code behind adapters. No direct Monaco imports in AST tre
 - [x] Add custom-domain attach and preview cleanup script (PR #1).
 - [x] Add static isolation headers (PR #1).
 - [x] Replace failing pnpm bootstrap with pinned Corepack setup (PR #2).
-- [ ] Get Cloudflare, lint and autofix workflows green.
+- [x] Get unit-test workflow green.\n- [ ] Verify formatting-check workflow after replacing unavailable autofix.ci app.\n- [ ] Configure Cloudflare GitHub Actions secrets and verify deployment.
 - [x] Verify Nuxt static generation in CI.\n- [ ] Verify Wrangler static assets deployment and custom domain attachment.
 - [ ] Confirm production domain and HTTP isolation headers.
 - [ ] Confirm PR preview URL and deletion on close.

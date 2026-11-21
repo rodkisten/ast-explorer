@@ -14,7 +14,7 @@ The workflow deploys `ast-explorer` on pushes to `main` and `ast-pr-N` on same-r
 - `CLOUDFLARE_ACCOUNT_ID`: Cloudflare account ID
 - `CLOUDFLARE_ZONE_ID`: zone ID for `migos.club`
 
-Never expose these credentials to forked pull requests.
+These secrets must be configured under **Repository Settings → Secrets and variables → Actions**. The workflow now fails early with the missing secret name when a value is absent. Never expose these credentials to forked pull requests.
 
 ## Validate locally
 
