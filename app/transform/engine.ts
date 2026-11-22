@@ -12,14 +12,17 @@ export interface TransformResult {
   diagnostics: string[]
 }
 
-export function supportsTransform(language: MonacoLanguage): language is TransformLanguage {
-  return language === 'javascript' || language === 'typescript' || language === 'css'
+export function supportsTransform(
+  language: MonacoLanguage,
+): language is TransformLanguage {
+  return (
+    language === 'javascript' || language === 'typescript' || language === 'css'
+  )
 }
 
 function parseRules(source: string): TransformRule[] {
   const parsed: unknown = JSON.parse(source)
-  if (!Array.isArray(parsed))
-    throw new TypeError('Rules must be a JSON array.')
+  if (!Array.isArray(parsed)) throw new TypeError('Rules must be a JSON array.')
   return parsed.map((rule: unknown, index): TransformRule => {
     if (
       typeof rule !== 'object' ||
@@ -30,7 +33,9 @@ function parseRules(source: string): TransformRule[] {
       typeof rule.replace !== 'string' ||
       rule.find.length === 0
     )
-      throw new TypeError(`Rule ${index + 1} must have non-empty "find" and string "replace".`)
+      throw new TypeError(
+        `Rule ${index + 1} must have non-empty "find" and string "replace".`,
+      )
     return { find: rule.find, replace: rule.replace }
   })
 }
@@ -41,15 +46,13 @@ export async function transformSource(
   rulesSource: string,
 ): Promise<TransformResult> {
   const rules = parseRules(rulesSource)
-  if (rules.length === 0)
-    return { output: input, diagnostics: [] }
+  if (rules.length === 0) return { output: input, diagnostics: [] }
   if (language === 'css') {
     const { default: postcss } = await import('postcss')
     const root = postcss.parse(input)
     root.walkDecls((decl) => {
       for (const rule of rules) {
-        if (decl.prop === rule.find)
-          decl.prop = rule.replace
+        if (decl.prop === rule.find) decl.prop = rule.replace
       }
     })
     return { output: root.toResult().css, diagnostics: [] }
@@ -63,20 +66,29 @@ export async function transformSource(
     true,
     language === 'typescript' ? ts.ScriptKind.TS : ts.ScriptKind.JS,
   )
-  const edits: Array<{ start: number, end: number, replace: string }> = []
+  const edits: Array<{ start: number; end: number; replace: string }> = []
   const diagnostics: string[] = []
-  const parseDiagnostics = (sourceFile as typeof sourceFile & { parseDiagnostics?: readonly import('typescript').Diagnostic[] }).parseDiagnostics
+  const parseDiagnostics = (
+    sourceFile as typeof sourceFile & {
+      parseDiagnostics?: readonly import('typescript').Diagnostic[]
+    }
+  ).parseDiagnostics
   for (const diagnostic of parseDiagnostics ?? [])
-    diagnostics.push(ts.flattenDiagnosticMessageText(diagnostic.messageText, String.raw`\n`))
-  if (diagnostics.length)
-    return { output: input, diagnostics }
+    diagnostics.push(
+      ts.flattenDiagnosticMessageText(diagnostic.messageText, String.raw`\n`),
+    )
+  if (diagnostics.length) return { output: input, diagnostics }
   const visit = (node: import('typescript').Node) => {
     if (ts.isIdentifier(node)) {
       const rule = rules.find((item) => item.find === node.text)
       if (rule) {
         if (!identifierPattern.test(rule.replace))
           throw new TypeError(`Invalid JavaScript identifier: ${rule.replace}`)
-        edits.push({ start: node.getStart(sourceFile), end: node.getEnd(), replace: rule.replace })
+        edits.push({
+          start: node.getStart(sourceFile),
+          end: node.getEnd(),
+          replace: rule.replace,
+        })
       }
     }
     ts.forEachChild(node, visit)

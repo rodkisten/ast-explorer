@@ -1,6 +1,11 @@
 /// <reference lib="webworker" />
 
-interface RequestMessage { id: number; source: string; language: 'javascript' | 'typescript'; preset: 'react' | 'typescript' }
+interface RequestMessage {
+  id: number
+  source: string
+  language: 'javascript' | 'typescript'
+  preset: 'react' | 'typescript'
+}
 
 addEventListener('message', async (event: MessageEvent<RequestMessage>) => {
   const { id, source, language, preset } = event.data
@@ -9,10 +14,20 @@ addEventListener('message', async (event: MessageEvent<RequestMessage>) => {
     const moduleUrl: string = 'https://esm.sh/@babel/standalone@7.26.9?bundle'
     const babel = await import(/* @vite-ignore */ moduleUrl)
     const transform = babel.transform ?? babel.default?.transform
-    if (typeof transform !== 'function') throw new Error('Babel transform export not found')
-    const result = transform(source, { filename: language === 'typescript' ? 'input.tsx' : 'input.jsx', presets: [preset], sourceMaps: false, babelrc: false, configFile: false })
+    if (typeof transform !== 'function')
+      throw new Error('Babel transform export not found')
+    const result = transform(source, {
+      filename: language === 'typescript' ? 'input.tsx' : 'input.jsx',
+      presets: [preset],
+      sourceMaps: false,
+      babelrc: false,
+      configFile: false,
+    })
     postMessage({ id, output: result.code ?? source, diagnostics: [] })
   } catch (error) {
-    postMessage({ id, error: error instanceof Error ? error.message : String(error) })
+    postMessage({
+      id,
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 })
