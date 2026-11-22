@@ -46,7 +46,6 @@ const status = ref<
 >('idle')
 const showRawConfig = ref(false)
 const isCdnPlugin = computed(() => pluginId.value.startsWith('css-'))
-const showDetails = ref(false)
 const renameFrom = ref('oldName')
 const renameTo = ref('newName')
 const isRename = computed(

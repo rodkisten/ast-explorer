@@ -4,8 +4,8 @@ export interface ModuleResolution {
   url: string
 }
 
-const bare = (specifier: string) =>
-  !/^(?:[./]|https?:|data:|blob:)/.test(specifier)
+const nonBareSpecifier = /^(?:[./]|https?:|data:|blob:)/
+const bare = (specifier: string) => !nonBareSpecifier.test(specifier)
 const safePackage = /^(?:@[-\w.]+\/)?[-\w.]+(?:\/[-\w.]+)*$/
 
 export async function resolveTransformerImports(
@@ -30,6 +30,7 @@ export async function resolveTransformerImports(
     if (
       ts.isCallExpression(node) &&
       node.arguments.length === 1 &&
+      node.arguments[0] !== undefined &&
       ts.isStringLiteral(node.arguments[0]) &&
       (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
         (ts.isIdentifier(node.expression) &&
