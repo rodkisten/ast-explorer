@@ -2,12 +2,15 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import CodeEditor from '~/components/CodeEditor.vue'
 import { code } from '~/state/editor'
+import { runCustomTransformer } from '~/transform/custom-runner'
 import { supportsTransform } from '~/transform/engine'
 import { getTransformPlugin, transformPlugins } from '~/transform/plugins'
 import { runRemoteBabel } from '~/transform/remote'
-import { runCustomTransformer } from '~/transform/custom-runner'
-import { calculateChanges } from '~/transform/runner'
-import { executeTransform, type TransformChange } from '~/transform/runner'
+import {
+  calculateChanges,
+  executeTransform,
+  type TransformChange,
+} from '~/transform/runner'
 import type { MonacoLanguage } from '~/parser'
 
 const props = defineProps<{ language: MonacoLanguage }>()
@@ -47,7 +50,10 @@ const showDetails = ref(false)
 const renameFrom = ref('oldName')
 const renameTo = ref('newName')
 const isRename = computed(
-  () => !customEnabled.value && !remoteEnabled.value && pluginId.value === 'rename-symbols',
+  () =>
+    !customEnabled.value &&
+    !remoteEnabled.value &&
+    pluginId.value === 'rename-symbols',
 )
 watch([renameFrom, renameTo], () => {
   if (isRename.value)
@@ -113,7 +119,8 @@ async function loadExample() {
 async function run() {
   if (
     !supportsTransform(props.language) ||
-    (!customEnabled.value && !remoteEnabled.value &&
+    (!customEnabled.value &&
+      !remoteEnabled.value &&
       (!plugin.value || !plugin.value.languages.includes(props.language)))
   )
     return
@@ -125,20 +132,28 @@ async function run() {
   diagnostics.value = []
   try {
     const result = customEnabled.value
-      ? await runCustomTransformer(code.value, customCode.value, controller.signal).then((result) => ({ ...result, changes: calculateChanges(code.value, result.output), elapsedMs: 0 }))
+      ? await runCustomTransformer(
+          code.value,
+          customCode.value,
+          controller.signal,
+        ).then((result) => ({
+          ...result,
+          changes: calculateChanges(code.value, result.output),
+          elapsedMs: 0,
+        }))
       : remoteEnabled.value
-      ? await runRemoteBabel({
-          source: code.value,
-          language: props.language,
-          signal: controller.signal,
-        })
-      : await executeTransform({
-          pluginId: pluginId.value,
-          source: code.value,
-          language: props.language,
-          config: rules.value,
-          signal: controller.signal,
-        })
+        ? await runRemoteBabel({
+            source: code.value,
+            language: props.language,
+            signal: controller.signal,
+          })
+        : await executeTransform({
+            pluginId: pluginId.value,
+            source: code.value,
+            language: props.language,
+            config: rules.value,
+            signal: controller.signal,
+          })
     if (id !== generation) return
     output.value = result.output
     diagnostics.value = result.diagnostics
@@ -169,7 +184,9 @@ function apply() {
     !dirty.value ||
     diagnostics.value.length ||
     code.value !== previewSource.value ||
-    (customEnabled.value ? customCode.value !== previewCustomCode.value : rules.value !== previewRules.value) ||
+    (customEnabled.value
+      ? customCode.value !== previewCustomCode.value
+      : rules.value !== previewRules.value) ||
     props.language !== previewLanguage.value
   )
     return
@@ -182,16 +199,27 @@ watch(pluginId, () => {
   rules.value = plugin.value?.defaultConfig ?? '{}'
   showRawConfig.value = false
 })
-watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled, customCode], () => {
-  generation++
-  controller?.abort()
-  changes.value = []
-  dirty.value = false
-  output.value = ''
-  diagnostics.value = []
-  busy.value = false
-  status.value = 'idle'
-})
+watch(
+  [
+    code,
+    () => props.language,
+    rules,
+    pluginId,
+    remoteEnabled,
+    customEnabled,
+    customCode,
+  ],
+  () => {
+    generation++
+    controller?.abort()
+    changes.value = []
+    dirty.value = false
+    output.value = ''
+    diagnostics.value = []
+    busy.value = false
+    status.value = 'idle'
+  },
+)
 </script>
 
 <template>
@@ -204,74 +232,91 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
     border-t
     border-base
   >
-    <header class="transform-header" flex="~ col" gap2 border-b border-base px3 py2>
+    <header
+      class="transform-header"
+      flex="~ col"
+      gap2
+      border-b
+      border-base
+      px3
+      py2
+    >
       <div flex="~ y-center wrap" gap2>
-      <strong text-sm>Transform workspace</strong>
-      <label flex="~ y-center" gap1 text-xs><input v-model="customEnabled" type="checkbox" @change="remoteEnabled = false" /> TypeScript transformer (CDN)</label>
-      <label v-if="!customEnabled" flex="~ y-center" gap1 text-xs
-        ><input v-model="remoteEnabled" type="checkbox" /> CDN Babel
-        (experimental)</label
-      >
-      <select
-        v-if="!remoteEnabled && !customEnabled"
-        v-model="pluginId"
-        aria-label="Transform plugin"
-        border
-        border-base
-        rounded
-        bg-base
-        px2
-        py1
-        text-xs
-      >
-        <option
-          v-for="item in availablePlugins"
-          :key="item.id"
-          :value="item.id"
+        <strong text-sm>Transform workspace</strong>
+        <label flex="~ y-center" gap1 text-xs
+          ><input
+            v-model="customEnabled"
+            type="checkbox"
+            @change="remoteEnabled = false"
+          />
+          TypeScript transformer (CDN)</label
         >
-          {{ item.label }}
-        </option>
-      </select>
+        <label v-if="!customEnabled" flex="~ y-center" gap1 text-xs
+          ><input v-model="remoteEnabled" type="checkbox" /> CDN Babel
+          (experimental)</label
+        >
+        <select
+          v-if="!remoteEnabled && !customEnabled"
+          v-model="pluginId"
+          aria-label="Transform plugin"
+          border
+          border-base
+          rounded
+          bg-base
+          px2
+          py1
+          text-xs
+        >
+          <option
+            v-for="item in availablePlugins"
+            :key="item.id"
+            :value="item.id"
+          >
+            {{ item.label }}
+          </option>
+        </select>
       </div>
       <div flex="~ y-center wrap" gap2>
-      <button pill-button :disabled="!supported" @click="loadExample">
-        Load example
-      </button>
-      <div flex-1 />
-      <button
-        pill-button
-        :disabled="
-          !supported ||
-          (!customEnabled && !remoteEnabled && !plugin) ||
-          (!customEnabled && remoteEnabled && language === 'css') ||
-          busy
-        "
-        @click="run"
-      >
-        <span v-if="busy" i-ri:loader-4-line class="animate-spin" />
-        {{ busy ? 'Running…' : 'Run transform' }}
-      </button>
-      <button
-        pill-button
-        :disabled="
-          !dirty ||
-          !changed ||
-          diagnostics.length > 0 ||
-          code !== previewSource ||
-          (customEnabled ? customCode !== previewCustomCode : rules !== previewRules) ||
-          language !== previewLanguage
-        "
-        @click="apply"
-      >
-        Apply
-      </button>
-      <button
-        aria-label="Close transform workspace"
-        nav-button
-        @click="emit('close')"
-      >
-        <span i-ri:close-line />
-      </button>
+        <button pill-button :disabled="!supported" @click="loadExample">
+          Load example
+        </button>
+        <div flex-1 />
+        <button
+          pill-button
+          :disabled="
+            !supported ||
+            (!customEnabled && !remoteEnabled && !plugin) ||
+            (!customEnabled && remoteEnabled && language === 'css') ||
+            busy
+          "
+          @click="run"
+        >
+          <span v-if="busy" i-ri:loader-4-line class="animate-spin" />
+          {{ busy ? 'Running…' : 'Run transform' }}
+        </button>
+        <button
+          pill-button
+          :disabled="
+            !dirty ||
+            !changed ||
+            diagnostics.length > 0 ||
+            code !== previewSource ||
+            (customEnabled
+              ? customCode !== previewCustomCode
+              : rules !== previewRules) ||
+            language !== previewLanguage
+          "
+          @click="apply"
+        >
+          Apply
+        </button>
+        <button
+          aria-label="Close transform workspace"
+          nav-button
+          @click="emit('close')"
+        >
+          <span i-ri:close-line />
+        </button>
       </div>
     </header>
     <div
@@ -311,12 +356,20 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
       <div class="transform-editor-pane" flex="~ col" min-h-0 min-w-0>
         <div px3 py1 text-xs text-soft>
           {{
-            customEnabled ? 'TypeScript transformer · npm imports via esm.sh' : remoteEnabled
-              ? 'Babel via esm.sh · fixed version · runs in a worker'
-              : `${plugin?.label} · Configuration (JSON)`
+            customEnabled
+              ? 'TypeScript transformer · npm imports via esm.sh'
+              : remoteEnabled
+                ? 'Babel via esm.sh · fixed version · runs in a worker'
+                : `${plugin?.label} · Configuration (JSON)`
           }}
         </div>
-        <CodeEditor v-if="customEnabled" v-model="customCode" language="typescript" min-h-0 flex-1 />
+        <CodeEditor
+          v-if="customEnabled"
+          v-model="customCode"
+          language="typescript"
+          min-h-0
+          flex-1
+        />
         <div v-if="isRename && !showRawConfig" flex="~ col" gap3 p3 text-xs>
           <label flex="~ col" gap1
             ><span text-soft>Find identifier / property</span
@@ -360,7 +413,12 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
           may take longer. CDN access and CSP permission required.
         </p>
         <CodeEditor
-          v-if="!customEnabled && !remoteEnabled && !isCdnPlugin && (!isRename || showRawConfig)"
+          v-if="
+            !customEnabled &&
+            !remoteEnabled &&
+            !isCdnPlugin &&
+            (!isRename || showRawConfig)
+          "
           v-model="rules"
           language="json"
           min-h-0
@@ -425,9 +483,16 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
       <span>{{ elapsedMs }} ms</span>
       <span text-green-600>+{{ additions }} lines</span>
       <span text-red-600>-{{ removals }} lines</span>
-
     </div>
-    <div v-if="changes.length && dirty" class="transform-details" border-t border-base px3 py2 text-xs>
+    <div
+      v-if="changes.length && dirty"
+      class="transform-details"
+      border-t
+      border-base
+      px3
+      py2
+      text-xs
+    >
       <details>
         <summary cursor-pointer>Inspect changed source ranges</summary>
         <div
@@ -465,11 +530,24 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
 </template>
 
 <style scoped>
-.transform-workspace { min-height: 0; max-width: 100%; }
-.transform-header { flex: 0 0 auto; }
-.transform-editor-pane { overflow: hidden; }
-.transform-editor-pane > :deep(.cm-editor) { min-height: 0; max-width: 100%; }
-.transform-details { max-height: 7rem; overflow-y: auto; }
+.transform-workspace {
+  min-height: 0;
+  max-width: 100%;
+}
+.transform-header {
+  flex: 0 0 auto;
+}
+.transform-editor-pane {
+  overflow: hidden;
+}
+.transform-editor-pane > :deep(.cm-editor) {
+  min-height: 0;
+  max-width: 100%;
+}
+.transform-details {
+  max-height: 7rem;
+  overflow-y: auto;
+}
 
 .transform-editors {
   display: grid;
