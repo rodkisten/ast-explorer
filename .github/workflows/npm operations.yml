@@ -5,18 +5,18 @@ run-name: "🥊 ${{ inputs.operation }}${{ inputs.custom-command-order != 'none'
 on:
   push:
     paths:
-      - "package.json"
+      - package.json
   workflow_dispatch:
     inputs:
       selected-branch:
-        description: 'Target branch'
+        description: Target branch
         type: string
-        default: 'main'
+        default: main
         required: false
       operation:
-        description: 'Operation to execute'
+        description: Operation to execute
         required: true
-        default: 'install'
+        default: install
         type: choice
         options:
           - install
@@ -30,15 +30,15 @@ on:
         required: false
         default: ''
       custom-command:
-        description: 'Any shell command (used in "custom" mode or when order is before/after)'
+        description: Any shell command (used in custom mode or when order is before/after)
         type: string
         required: false
         default: ''
       custom-command-order:
-        description: 'When to run custom-command relative to package operation'
+        description: When to run custom-command relative to package operation
         type: choice
         required: false
-        default: 'none'
+        default: none
         options:
           - none
           - before
