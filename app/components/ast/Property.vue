@@ -97,22 +97,11 @@ function handleMouseLeave() {
   }
 }
 
-const container = ref<HTMLDivElement>()
 const exactFocusing = ref(false)
 
 function handleSubFocusingChange(subFocusing: boolean) {
   exactFocusing.value = isFocusing.value && !subFocusing
 }
-
-watch(
-  [autoFocus, exactFocusing, isFocusing, container],
-  ([autoFocus, exactFocusing, isFocusing, container]) => {
-    if (autoFocus && exactFocusing && isFocusing && container) {
-      requestAnimationFrame(() => container.scrollIntoView({ block: 'center' }))
-    }
-  },
-  { immediate: true },
-)
 
 defineExpose({ isFocusing })
 </script>
@@ -120,7 +109,6 @@ defineExpose({ isFocusing })
 <template>
   <div
     v-if="show"
-    ref="container"
     relative
     w-fit
     :class="isFocusing && exactFocusing && 'ast-highlight'"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, shallowRef, watch, watchEffect } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, shallowRef, watch, watchEffect } from 'vue'
+import { editorProvider } from '~/state/editor-provider'
 import Loading from '~/components/Loading.vue'
 import { loadedMonaco, useMonacoLanguage } from '~/composables/monaco'
 import {
@@ -14,11 +15,15 @@ import { createMonacoAdapter } from '~/editor/monaco-adapter'
 import type { EditorAdapter } from '~/editor/adapter'
 import type { MonacoLanguage } from '~/parser'
 
+const CodeMirrorEditor = defineAsyncComponent(() => import('~/components/CodeMirrorEditor.vue'))
+
 const props = defineProps<{
   language: MonacoLanguage
   input?: boolean
 }>()
 const code = defineModel<string>()
+
+const codeMirrorContainer = shallowRef<{ adapter: EditorAdapter | undefined }>()
 
 const container = shallowRef<{
   $editor: Monaco.editor.IStandaloneCodeEditor | undefined
@@ -27,6 +32,13 @@ const container = shallowRef<{
 const adapter = shallowRef<EditorAdapter>()
 
 defineExpose({ adapter })
+
+watch(() => codeMirrorContainer.value?.adapter, (value) => {
+  if (editorProvider.value === 'codemirror') adapter.value = value
+})
+watch(editorProvider, (provider) => {
+  adapter.value = provider === 'codemirror' ? codeMirrorContainer.value?.adapter : (container.value?.$editor ? createMonacoAdapter(container.value.$editor) : undefined)
+})
 
 const options = computed(() => getSharedMonacoOptions())
 const editorLanguage = useMonacoLanguage(() => props.language)
@@ -40,7 +52,7 @@ watch(
   () => container.value?.$editor,
   (editor) => {
     if (!editor) return
-    adapter.value = createMonacoAdapter(editor)
+    if (editorProvider.value === 'monaco') adapter.value = createMonacoAdapter(editor)
     const monaco = loadedMonaco.value!
 
     editor.addAction({
@@ -89,8 +101,15 @@ if (props.input) {
 </script>
 
 <template>
+  <CodeMirrorEditor
+    v-if="editorProvider === 'codemirror'"
+    ref="codeMirrorContainer"
+    v-model="code"
+    :language="language"
+    :input="input"
+  />
   <MonacoEditor
-    v-if="editorLanguage"
+    v-else-if="editorLanguage"
     ref="container"
     v-model="code"
     :lang="editorLanguage"

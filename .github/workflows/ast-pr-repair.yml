@@ -1,0 +1,45 @@
+name: AST PR Dependency & Lint Repair
+
+on:
+  push:
+    branches:
+      - feat/codemirror-6-provider
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ast-pr-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: "!contains(github.event.head_commit.message, '[auto-fix]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+      - name: Install pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@12.21.0 --activate
+      - name: Refresh lockfile
+        run: pnpm install --no-frozen-lockfile
+      - name: Apply ESLint fixes
+        run: pnpm exec eslint --fix app/components/CodeMirrorEditor.vue app/components/TransformWorkspace.vue app/transform package.json pnpm-workspace.yaml || true
+      - name: Format touched source
+        run: pnpm exec prettier --write app/components/CodeMirrorEditor.vue app/components/TransformWorkspace.vue app/transform package.json pnpm-workspace.yaml
+      - name: Commit fixes to PR branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml package.json pnpm-workspace.yaml app/components/CodeMirrorEditor.vue app/components/TransformWorkspace.vue app/transform
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ast): sync catalog lockfile and autofix lint [auto-fix] [deploy]"
+            git push
+          fi
