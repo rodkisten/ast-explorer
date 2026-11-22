@@ -12,6 +12,7 @@ import {
   type TransformChange,
 } from '~/transform/runner'
 import { transformerTemplates } from '~/transform/templates'
+import { acquireTransformerTypes } from '~/transform/type-loader'
 import type { MonacoLanguage } from '~/parser'
 
 const props = defineProps<{ language: MonacoLanguage }>()
@@ -19,6 +20,18 @@ const emit = defineEmits<{ close: [] }>()
 const pluginId = ref('rename-symbols')
 const remoteEnabled = ref(false)
 const customEnabled = ref(true)
+const typeStatus = ref('')
+const acquiredTypes = ref<string[]>([])
+async function fetchTransformerTypes() {
+  typeStatus.value = 'Fetching npm declarations…'
+  try {
+    const libraries = await acquireTransformerTypes(customCode.value)
+    acquiredTypes.value = libraries.map((lib) => lib.filename)
+    typeStatus.value = libraries.length ? `Downloaded ${libraries.length} declaration files` : 'No external declarations found'
+  } catch (error) {
+    typeStatus.value = error instanceof Error ? error.message : String(error)
+  }
+}
 const selectedTemplate = ref('postcss-autoprefixer')
 const filteredTemplates = computed(() =>
   transformerTemplates.filter((item) => item.language === props.language),

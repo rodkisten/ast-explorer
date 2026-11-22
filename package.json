@@ -136,7 +136,8 @@
     "yaml": "catalog:parser",
     "yaml-eslint-parser": "catalog:parser",
     "yaml-unist-parser": "catalog:parser",
-    "yuku": "catalog:parser"
+    "yuku": "catalog:parser",
+    "@typescript/ata": "^0.9.8"
   },
   "prettier": "@sxzz/prettier-config"
 }
