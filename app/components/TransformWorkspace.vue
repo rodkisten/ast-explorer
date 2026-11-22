@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import CodeEditor from '~/components/CodeEditor.vue'
+import { transformerTemplates } from '~/transform/templates'
 import { code } from '~/state/editor'
 import { runCustomTransformer } from '~/transform/custom-runner'
 import { supportsTransform } from '~/transform/engine'
@@ -17,7 +18,20 @@ const props = defineProps<{ language: MonacoLanguage }>()
 const emit = defineEmits<{ close: [] }>()
 const pluginId = ref('rename-symbols')
 const remoteEnabled = ref(false)
-const customEnabled = ref(false)
+const customEnabled = ref(true)
+const selectedTemplate = ref('postcss-autoprefixer')
+const filteredTemplates = computed(() => transformerTemplates.filter((item) => item.language === props.language))
+function loadTemplate() {
+  const template = transformerTemplates.find((item) => item.id === selectedTemplate.value)
+  if (!template) return
+  customCode.value = template.source
+  customEnabled.value = true
+  remoteEnabled.value = false
+}
+watch(() => props.language, () => {
+  const first = filteredTemplates.value[0]
+  if (first) { selectedTemplate.value = first.id; loadTemplate() }
+})
 const customCode = ref(`import postcss from 'postcss@8.5.3'
 import autoprefixer from 'autoprefixer@10.4.21'
 
@@ -276,7 +290,11 @@ watch(
         </select>
       </div>
       <div flex="~ y-center wrap" gap2>
-        <button pill-button :disabled="!supported" @click="loadExample">
+        <select v-if="customEnabled" v-model="selectedTemplate" aria-label="Transformer example" rounded border border-base bg-base px2 py1 text-xs>
+          <option v-for="template in filteredTemplates" :key="template.id" :value="template.id">{{ template.family }} · {{ template.label }}</option>
+        </select>
+        <button v-if="customEnabled" pill-button @click="loadTemplate">Load transformer</button>
+        <button v-else pill-button :disabled="!supported" @click="loadExample">
           Load example
         </button>
         <div flex-1 />
