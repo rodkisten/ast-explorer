@@ -53,10 +53,22 @@ async function loadExample() {
   pluginId.value = 'rename-symbols'
   if (props.language === 'css') {
     code.value = '.card { color: rebeccapurple; margin: 1rem; }'
-    rules.value = JSON.stringify([{ find: 'color', replace: 'background-color' }], null, 2)
+    rules.value = JSON.stringify(
+      [{ find: 'color', replace: 'background-color' }],
+      null,
+      2,
+    )
   } else {
-    code.value = 'const oldName = 42;\\nconsole.log(oldName);\\nfunction read() { return oldName; }'.replaceAll('\\n', '\n')
-    rules.value = JSON.stringify([{ find: 'oldName', replace: 'newName' }], null, 2)
+    code.value =
+      'const oldName = 42;\\nconsole.log(oldName);\\nfunction read() { return oldName; }'.replaceAll(
+        '\\n',
+        '\n',
+      )
+    rules.value = JSON.stringify(
+      [{ find: 'oldName', replace: 'newName' }],
+      null,
+      2,
+    )
   }
   await nextTick()
   await run()
@@ -172,7 +184,9 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
       <span text-xs text-soft
         >Run AST transforms, inspect output, then apply</span
       >
-      <button pill-button :disabled="!supported" @click="loadExample">Load example</button>
+      <button pill-button :disabled="!supported" @click="loadExample">
+        Load example
+      </button>
       <div flex-1 />
       <button
         pill-button
