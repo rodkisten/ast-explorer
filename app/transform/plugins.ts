@@ -15,6 +15,40 @@ export interface TransformPlugin {
 
 export const transformPlugins: readonly TransformPlugin[] = [
   {
+    id: 'css-autoprefixer',
+    label: 'Autoprefixer · CDN',
+    description: 'Add vendor prefixes for selected browser targets using esm.sh',
+    languages: ['css'],
+    defaultConfig: '{}',
+    run: async (source) => {
+      const { runRemoteCss } = await import('./css-remote')
+      return runRemoteCss(source, 'autoprefixer')
+    },
+  },
+  {
+    id: 'css-preset-env',
+    label: 'PostCSS Preset Env · CDN',
+    description: 'Compile modern CSS syntax for older browsers using esm.sh',
+    languages: ['css'],
+    defaultConfig: '{}',
+    run: async (source) => {
+      const { runRemoteCss } = await import('./css-remote')
+      return runRemoteCss(source, 'preset-env')
+    },
+  },
+  {
+    id: 'css-minify',
+    label: 'cssnano · CDN',
+    description: 'Minify CSS using the default cssnano preset from esm.sh',
+    languages: ['css'],
+    defaultConfig: '{}',
+    run: async (source) => {
+      const { runRemoteCss } = await import('./css-remote')
+      return runRemoteCss(source, 'cssnano')
+    },
+  },
+
+  {
     id: 'rename-symbols',
     label: 'Rename identifiers / CSS properties',
     description:

@@ -32,6 +32,7 @@ const status = ref<
   'idle' | 'loading' | 'success' | 'unchanged' | 'error' | 'applied'
 >('idle')
 const showRawConfig = ref(false)
+const isCdnPlugin = computed(() => pluginId.value.startsWith('css-'))
 const renameFrom = ref('oldName')
 const renameTo = ref('newName')
 const isRename = computed(
@@ -69,7 +70,7 @@ async function loadExample() {
   remoteEnabled.value = false
   pluginId.value = 'rename-symbols'
   if (props.language === 'css') {
-    code.value = '.card { color: rebeccapurple; margin: 1rem; }'
+    code.value = '.card { display: flex; user-select: none; color: rebeccapurple; }'
     renameFrom.value = 'color'
     renameTo.value = 'background-color'
     rules.value = JSON.stringify(
@@ -334,8 +335,9 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
         >
           Visual fields
         </button>
+        <p v-if="isCdnPlugin" p3 text-xs text-soft>Loads a pinned PostCSS transformer from esm.sh on demand. First run may take longer. CDN access and CSP permission required.</p>
         <CodeEditor
-          v-if="!remoteEnabled && (!isRename || showRawConfig)"
+          v-if="!remoteEnabled && !isCdnPlugin && (!isRename || showRawConfig)"
           v-model="rules"
           language="json"
           min-h-0
