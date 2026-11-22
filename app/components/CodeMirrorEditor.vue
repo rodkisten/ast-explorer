@@ -11,6 +11,7 @@ import { python } from '@codemirror/lang-python'
 import { sql } from '@codemirror/lang-sql'
 import { linter, setDiagnostics } from '@codemirror/lint'
 import { Decoration, ViewPlugin } from '@codemirror/view'
+import { StateEffect } from '@codemirror/state'
 import type { DecorationSet, ViewUpdate } from '@codemirror/view'
 import { editorCursor, outputHoverRange, showEditorSettings } from '~/state/editor'
 import type { MonacoLanguage } from '~/parser'
@@ -23,13 +24,14 @@ const view = shallowRef<EditorView>()
 const adapter = shallowRef<EditorAdapter>()
 const languageCompartment = new Compartment()
 const hoverMark = Decoration.mark({ class: 'ast-highlight' })
+const refreshHover = StateEffect.define<void>()
 const hoverPlugin = ViewPlugin.fromClass(class {
   decorations: DecorationSet
   constructor(view: EditorView) {
     this.decorations = this.compute(view)
   }
   update(update: ViewUpdate) {
-    if (update.docChanged || update.viewportChanged) this.decorations = this.compute(update.view)
+    if (update.docChanged || update.viewportChanged || update.transactions.some(transaction => transaction.effects.some(effect => effect.is(refreshHover)))) this.decorations = this.compute(update.view)
   }
   compute(view: EditorView) {
     const range = outputHoverRange.value
@@ -125,7 +127,7 @@ watch(() => props.language, language => adapter.value?.setLanguage(language))
 watch(() => outputHoverRange.value, (range) => {
   const editor = view.value
   if (!editor || !props.input) return
-  editor.dispatch({ effects: EditorView.scrollIntoView(Math.min(editor.state.doc.length, Math.max(0, range?.[0] ?? 0)), { y: 'center' }) })
+  editor.dispatch({ effects: range ? [refreshHover.of(), EditorView.scrollIntoView(Math.min(editor.state.doc.length, Math.max(0, range[0])), { y: 'center' })] : [refreshHover.of()] })
 })
 onBeforeUnmount(() => {
   adapter.value?.dispose()

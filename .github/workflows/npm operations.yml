@@ -3,6 +3,9 @@ name: 🥊 Package & Shell Operations
 run-name: "🥊 ${{ inputs.operation }}${{ inputs.custom-command-order != 'none' && inputs.operation != 'custom' && format(' (+shell {0})', inputs.custom-command-order) || '' }} on 🌿 ${{ inputs.selected-branch || github.ref_name }}"
 
 on:
+  push:
+    paths:
+      - "package.json"
   workflow_dispatch:
     inputs:
       selected-branch:
@@ -163,6 +166,13 @@ jobs:
           SUMMARY_PKGS=$(echo "$CLEANED_COMMANDS" | paste -sd " | " -)
           echo "cleaned_pkgs=${SUMMARY_PKGS:-none}" >> "$GITHUB_OUTPUT"
 
+          # Explicit packages must be saved to the manifest even in install mode.
+          EFFECTIVE_OP="$OP"
+          if [ "$OP" = "install" ] && [ -n "$CLEANED_COMMANDS" ]; then
+            EFFECTIVE_OP=add
+            echo "📦 Explicit packages detected: switching install to add"
+          fi
+
           # Validação da lista de pacotes para add e uninstall
           if [ "$OP" = "add" ] || [ "$OP" = "uninstall" ]; then
             if [ -z "$CLEANED_COMMANDS" ]; then
@@ -192,17 +202,11 @@ jobs:
               [ -z "$LINE" ] && continue
               echo "📦 Running $PM $OP $LINE"
               if [ "$PM" = "pnpm" ]; then
-                if [ "$OP" = "install" ]; then
-                  pnpm install --frozen-lockfile
-                else
-                  pnpm "$OP" $LINE
-                fi
+                pnpm "$EFFECTIVE_OP" $LINE
               else
-                if [ "$OP" = "install" ]; then
-                  npm ci --legacy-peer-deps --no-audit --no-fund
-                elif [ "$OP" = "add" ]; then
+                if [ "$EFFECTIVE_OP" = "add" ]; then
                   npm install $LINE --legacy-peer-deps --no-audit --no-fund
-                elif [ "$OP" = "uninstall" ]; then
+                elif [ "$EFFECTIVE_OP" = "uninstall" ]; then
                   npm uninstall $LINE --legacy-peer-deps --no-audit --no-fund
                 else
                   npm update $LINE --legacy-peer-deps --no-audit --no-fund
@@ -236,8 +240,17 @@ jobs:
           git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
           git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
 
-          git add -A
-          git commit -m "chore: run $OP ($PM)"
+          for file in package.json pnpm-lock.yaml package-lock.json; do
+            if [ -f "$file" ]; then
+              git add -- "$file"
+            fi
+          done
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No package manifest or lockfile changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(deps): run $OP ($PM) [deploy]"
           git push origin "HEAD:$BRANCH"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
