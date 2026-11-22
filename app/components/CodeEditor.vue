@@ -23,6 +23,8 @@ const props = defineProps<{
 }>()
 const code = defineModel<string>()
 
+const codeMirrorContainer = shallowRef<{ adapter: EditorAdapter | undefined }>()
+
 const container = shallowRef<{
   $editor: Monaco.editor.IStandaloneCodeEditor | undefined
 }>()
@@ -30,6 +32,13 @@ const container = shallowRef<{
 const adapter = shallowRef<EditorAdapter>()
 
 defineExpose({ adapter })
+
+watch(() => codeMirrorContainer.value?.adapter, (value) => {
+  if (editorProvider.value === 'codemirror') adapter.value = value
+})
+watch(editorProvider, (provider) => {
+  adapter.value = provider === 'codemirror' ? codeMirrorContainer.value?.adapter : (container.value?.$editor ? createMonacoAdapter(container.value.$editor) : undefined)
+})
 
 const options = computed(() => getSharedMonacoOptions())
 const editorLanguage = useMonacoLanguage(() => props.language)
@@ -43,7 +52,7 @@ watch(
   () => container.value?.$editor,
   (editor) => {
     if (!editor) return
-    adapter.value = createMonacoAdapter(editor)
+    if (editorProvider.value === 'monaco') adapter.value = createMonacoAdapter(editor)
     const monaco = loadedMonaco.value!
 
     editor.addAction({
@@ -94,6 +103,7 @@ if (props.input) {
 <template>
   <CodeMirrorEditor
     v-if="editorProvider === 'codemirror'"
+    ref="codeMirrorContainer"
     v-model="code"
     :language="language"
     :input="input"

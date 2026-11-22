@@ -10,6 +10,8 @@ import { markdown } from '@codemirror/lang-markdown'
 import { python } from '@codemirror/lang-python'
 import { sql } from '@codemirror/lang-sql'
 import { linter, setDiagnostics } from '@codemirror/lint'
+import { Decoration, ViewPlugin } from '@codemirror/view'
+import type { DecorationSet, ViewUpdate } from '@codemirror/view'
 import { editorCursor, outputHoverRange, showEditorSettings } from '~/state/editor'
 import type { MonacoLanguage } from '~/parser'
 import type { EditorAdapter, EditorDiagnostic, EditorSelection } from '~/editor/adapter'
@@ -20,6 +22,23 @@ const element = shallowRef<HTMLElement>()
 const view = shallowRef<EditorView>()
 const adapter = shallowRef<EditorAdapter>()
 const languageCompartment = new Compartment()
+const hoverMark = Decoration.mark({ class: 'ast-highlight' })
+const hoverPlugin = ViewPlugin.fromClass(class {
+  decorations: DecorationSet
+  constructor(view: EditorView) {
+    this.decorations = this.compute(view)
+  }
+  update(update: ViewUpdate) {
+    if (update.docChanged || update.viewportChanged) this.decorations = this.compute(update.view)
+  }
+  compute(view: EditorView) {
+    const range = outputHoverRange.value
+    if (!props.input || !range) return Decoration.none
+    const from = Math.min(view.state.doc.length, Math.max(0, range[0]))
+    const to = Math.min(view.state.doc.length, Math.max(from, range[1]))
+    return Decoration.set([hoverMark.range(from, to)])
+  }
+}, { decorations: plugin => plugin.decorations })
 
 function languageExtension(language: MonacoLanguage) {
   switch (language) {
@@ -51,6 +70,7 @@ onMounted(() => {
       doc: code.value,
       extensions: [
         basicSetup,
+        hoverPlugin,
         EditorView.lineWrapping,
         languageCompartment.of(languageExtension(props.language)),
         linter(() => []),
@@ -104,8 +124,8 @@ watch(code, (value) => {
 watch(() => props.language, language => adapter.value?.setLanguage(language))
 watch(() => outputHoverRange.value, (range) => {
   const editor = view.value
-  if (!editor || !props.input || !range) return
-  editor.dispatch({ effects: EditorView.scrollIntoView(Math.min(editor.state.doc.length, range[0]), { y: 'center' }) })
+  if (!editor || !props.input) return
+  editor.dispatch({ effects: EditorView.scrollIntoView(Math.min(editor.state.doc.length, Math.max(0, range?.[0] ?? 0)), { y: 'center' }) })
 })
 onBeforeUnmount(() => {
   adapter.value?.dispose()
@@ -121,4 +141,5 @@ defineExpose({ adapter })
 
 <style scoped>
 .codemirror-host { overflow: hidden; }
+.codemirror-host :deep(.ast-highlight) { background: rgba(124, 58, 237, 0.22); border-radius: 2px; }
 </style>
