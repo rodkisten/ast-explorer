@@ -15,7 +15,7 @@ export function runRemoteBabel(request: RemoteTransformRequest): Promise<Transfo
   if (request.source.length > 2_000_000) return Promise.reject(new Error('Source exceeds the 2 MB limit'))
   if (request.signal?.aborted) return Promise.reject(new Error('Transform cancelled'))
   const started = performance.now()
-  const worker = new Worker(new URL('./babel.worker.ts', import.meta.url), { type: 'module' })
+  const worker = new Worker(new URL('babel.worker.ts', import.meta.url), { type: 'module' })
   return new Promise((resolve, reject) => {
     let settled = false
     const finish = (error?: Error, output?: string) => {
@@ -33,12 +33,12 @@ export function runRemoteBabel(request: RemoteTransformRequest): Promise<Transfo
     const abort = () => finish(new Error('Transform cancelled'))
     const timeout = setTimeout(() => finish(new Error('Remote transform timed out')), request.timeoutMs ?? 15_000)
     request.signal?.addEventListener('abort', abort, { once: true })
-    worker.onerror = event => finish(new Error(event.message || 'Babel worker failed'))
-    worker.onmessage = (event: MessageEvent<{ id: number; output?: string; error?: string }>) => {
+    worker.addEventListener('error', event => finish(new Error(event.message || 'Babel worker failed')))
+    worker.addEventListener('message', (event: MessageEvent<{ id: number; output?: string; error?: string }>) => {
       if (event.data.id !== 1) return
       if (event.data.error) finish(new Error(event.data.error))
       else finish(undefined, event.data.output)
-    }
+    })
     worker.postMessage({ id: 1, source: request.source, language: request.language, preset: request.language === 'typescript' ? 'typescript' : 'react' })
   })
 }

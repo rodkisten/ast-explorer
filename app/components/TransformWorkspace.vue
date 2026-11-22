@@ -4,8 +4,8 @@ import CodeEditor from '~/components/CodeEditor.vue'
 import { supportsTransform } from '~/transform/engine'
 import { getTransformPlugin, transformPlugins } from '~/transform/plugins'
 import { executeTransform } from '~/transform/runner'
-import { runRemoteBabel } from '~/transform/remote'
 import type { TransformChange } from '~/transform/runner'
+import { runRemoteBabel } from '~/transform/remote'
 import { code } from '~/state/editor'
 import type { MonacoLanguage } from '~/parser'
 
@@ -105,7 +105,7 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
     </p>
     <div v-else class="transform-editors" flex-1 min-h-0 min-w-0>
       <div flex="~ col" min-h-0 min-w-0>
-        <div px3 py1 text-xs text-soft>{{ remoteEnabled ? 'Babel via esm.sh · fixed version · runs in a worker' : plugin?.label + ' · Configuration (JSON)' }}</div>
+        <div px3 py1 text-xs text-soft>{{ remoteEnabled ? 'Babel via esm.sh · fixed version · runs in a worker' : `${plugin?.label} · Configuration (JSON)` }}</div>
         <CodeEditor v-if="!remoteEnabled" v-model="rules" language="json" flex-1 min-h-0 />
         <p v-else p3 text-sm text-soft>Loads @babel/standalone on demand. React preset for JavaScript, TypeScript preset for TS. External code runs in a Worker, which is not a security sandbox. Requires CDN access and CSP permission.</p>
       </div>
