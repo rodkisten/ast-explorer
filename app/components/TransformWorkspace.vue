@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import CodeEditor from '~/components/CodeEditor.vue'
-import { supportsTransform, transformSource } from '~/transform/engine'
+import { supportsTransform } from '~/transform/engine'
+import { getTransformPlugin, transformPlugins } from '~/transform/plugins'
 import { code } from '~/state/editor'
 import type { MonacoLanguage } from '~/parser'
 
 const props = defineProps<{ language: MonacoLanguage }>()
 const emit = defineEmits<{ close: [] }>()
+const pluginId = ref('rename-symbols')
+const plugin = computed(() => getTransformPlugin(pluginId.value))
+const availablePlugins = computed(() => transformPlugins.filter(item => item.languages.includes(props.language as 'javascript' | 'typescript' | 'css')))
 const rules = ref('[\n  { "find": "oldName", "replace": "newName" }\n]')
 const output = ref('')
 const outputMode = ref<'preview' | 'source'>('preview')
@@ -23,12 +27,12 @@ const removals = computed(() => Math.max(0, previewSource.value.split('\n').leng
 let generation = 0
 
 async function run() {
-  if (!supportsTransform(props.language)) return
+  if (!supportsTransform(props.language) || !plugin.value || !plugin.value.languages.includes(props.language)) return
   const id = ++generation
   busy.value = true
   diagnostics.value = []
   try {
-    const result = await transformSource(code.value, props.language, rules.value)
+    const result = await plugin.value.run(code.value, props.language, rules.value)
     if (id !== generation) return
     output.value = result.output
     diagnostics.value = result.diagnostics
@@ -51,7 +55,8 @@ function apply() {
   dirty.value = false
 }
 
-watch([code, () => props.language, rules], () => {
+watch(pluginId, () => { rules.value = plugin.value?.defaultConfig ?? '{}' })
+watch([code, () => props.language, rules, pluginId], () => {
   generation++
   dirty.value = false
   output.value = ''
@@ -64,9 +69,12 @@ watch([code, () => props.language, rules], () => {
   <section class="transform-workspace" flex="~ col" h-full min-h-0 min-w-0 border-t border-base>
     <header flex="~ y-center wrap" gap2 border-b border-base px3 py2>
       <strong text-sm>Transform workspace</strong>
+      <select v-model="pluginId" aria-label="Transform plugin" rounded border border-base bg-base px2 py1 text-xs>
+        <option v-for="item in availablePlugins" :key="item.id" :value="item.id">{{ item.label }}</option>
+      </select>
       <span text-xs text-soft>Run AST transforms, inspect output, then apply</span>
       <div flex-1 />
-      <button pill-button :disabled="!supported || busy" @click="run">
+      <button pill-button :disabled="!supported || !plugin || busy" @click="run">
         {{ busy ? 'Running…' : 'Run transform' }}
       </button>
       <button pill-button :disabled="!dirty || !changed || diagnostics.length > 0 || code !== previewSource || rules !== previewRules || language !== previewLanguage" @click="apply">
@@ -81,7 +89,7 @@ watch([code, () => props.language, rules], () => {
     </p>
     <div v-else class="transform-editors" flex-1 min-h-0 min-w-0>
       <div flex="~ col" min-h-0 min-w-0>
-        <div px3 py1 text-xs text-soft>Rules (JSON)</div>
+        <div px3 py1 text-xs text-soft>{{ plugin?.label }} · Configuration (JSON)</div>
         <CodeEditor v-model="rules" language="json" flex-1 min-h-0 />
       </div>
       <div flex="~ col" min-h-0 min-w-0>
