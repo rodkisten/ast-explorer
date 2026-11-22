@@ -15,7 +15,7 @@ export const transformPlugins: readonly TransformPlugin[] = [
     label: 'Rename identifiers / CSS properties',
     description: 'AST-aware identifier replacements for JS/TS, declaration properties for CSS',
     languages: ['javascript', 'typescript', 'css'],
-    defaultConfig: '[\\n  { "find": "oldName", "replace": "newName" }\\n]',
+    defaultConfig: String.raw`[\n  { "find": "oldName", "replace": "newName" }\n]`,
     run: async (source, language, config) => {
       const { transformSource } = await import('./engine')
       return transformSource(source, language, config)
@@ -29,7 +29,7 @@ export const transformPlugins: readonly TransformPlugin[] = [
     defaultConfig: '{}',
     run: async (source, language) => {
       const ts = await import('typescript')
-      const file = ts.createSourceFile('input.' + (language === 'typescript' ? 'ts' : 'js'), source, ts.ScriptTarget.Latest, true, language === 'typescript' ? ts.ScriptKind.TS : ts.ScriptKind.JS)
+      const file = ts.createSourceFile(`input.${language === 'typescript' ? 'ts' : 'js'}`, source, ts.ScriptTarget.Latest, true, language === 'typescript' ? ts.ScriptKind.TS : ts.ScriptKind.JS)
       const edits: Array<{ from: number, to: number }> = []
       const visit = (node: import('typescript').Node) => {
         if (ts.isExpressionStatement(node) && ts.isCallExpression(node.expression)) {
@@ -43,7 +43,7 @@ export const transformPlugins: readonly TransformPlugin[] = [
       }
       visit(file)
       let output = source
-      for (const edit of edits.sort((a, b) => b.from - a.from)) output = output.slice(0, edit.from) + output.slice(edit.to)
+      for (const edit of edits.toSorted((a, b) => b.from - a.from)) output = output.slice(0, edit.from) + output.slice(edit.to)
       return { output, diagnostics: [] }
     },
   },
