@@ -1,5 +1,4 @@
-import { calculateChanges } from './runner'
-import type { TransformExecutionResult } from './runner'
+import { calculateChanges, type TransformExecutionResult } from './runner'
 import type { TransformLanguage } from './engine'
 
 export interface RemoteTransformRequest {
