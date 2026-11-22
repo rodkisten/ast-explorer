@@ -28,7 +28,7 @@ function showSettings() {
 </script>
 
 <template>
-  <div relative flex="~ col" h-full min-h-0>
+  <div relative flex="~ col" h-full min-h-0 min-w-0>
     <div class="editor-toolbar" flex="~ y-center wrap" gap2 border-b border-base px3 py2>
       <label flex="~ y-center" gap2 text-xs>
         <span>Editor</span>
@@ -36,10 +36,11 @@ function showSettings() {
           <option v-for="choice in editorChoices" :key="choice.id" :value="choice.id">{{ choice.label }}</option>
         </select>
       </label>
-      <button pill-button text-xs :aria-expanded="showTransforms" @click="showTransforms = !showTransforms">
-        {{ showTransforms ? 'Hide transforms' : 'Transform workspace' }}
-      </button>
-      <span text-xs text-soft>{{ editorProvider === 'codemirror' ? 'CodeMirror 6 active' : 'Monaco active' }}</span>
+      <AppTooltip text="Transform workspace">
+        <button nav-button type="button" aria-label="Toggle transforms" :aria-pressed="showTransforms" :aria-expanded="showTransforms" @click="showTransforms = !showTransforms">
+          <span i-ri:magic-line text-lg />
+        </button>
+      </AppTooltip>
     </div>
     <AppTooltip text="Editor Settings">
       <button
@@ -62,9 +63,16 @@ function showSettings() {
     <TransformWorkspace
       v-if="showTransforms"
       :language="language"
-      class="h-45vh max-h-120 min-h-72"
+      class="transform-panel"
       @close="showTransforms = false"
     />
     <EditorSettings />
   </div>
 </template>
+
+<style scoped>
+.transform-panel { height: min(54vh, 35rem); min-height: 20rem; flex: 0 0 auto; }
+@media (max-width: 640px) {
+  .transform-panel { height: min(75dvh, 42rem); min-height: 24rem; }
+}
+</style>

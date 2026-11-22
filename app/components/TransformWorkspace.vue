@@ -43,6 +43,7 @@ const status = ref<
 >('idle')
 const showRawConfig = ref(false)
 const isCdnPlugin = computed(() => pluginId.value.startsWith('css-'))
+const showDetails = ref(false)
 const renameFrom = ref('oldName')
 const renameTo = ref('newName')
 const isRename = computed(
@@ -79,6 +80,7 @@ let generation = 0
 
 async function loadExample() {
   remoteEnabled.value = false
+  customEnabled.value = false
   pluginId.value = 'rename-symbols'
   if (props.language === 'css') {
     code.value =
@@ -196,13 +198,14 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
   <section
     class="transform-workspace"
     flex="~ col"
-    h-full
     min-h-0
     min-w-0
+    overflow-hidden
     border-t
     border-base
   >
-    <header flex="~ y-center wrap" gap2 border-b border-base px3 py2>
+    <header class="transform-header" flex="~ col" gap2 border-b border-base px3 py2>
+      <div flex="~ y-center wrap" gap2>
       <strong text-sm>Transform workspace</strong>
       <label flex="~ y-center" gap1 text-xs><input v-model="customEnabled" type="checkbox" @change="remoteEnabled = false" /> TypeScript transformer (CDN)</label>
       <label v-if="!customEnabled" flex="~ y-center" gap1 text-xs
@@ -229,9 +232,8 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
           {{ item.label }}
         </option>
       </select>
-      <span text-xs text-soft
-        >Run AST transforms, inspect output, then apply</span
-      >
+      </div>
+      <div flex="~ y-center wrap" gap2>
       <button pill-button :disabled="!supported" @click="loadExample">
         Load example
       </button>
@@ -270,6 +272,7 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
       >
         <span i-ri:close-line />
       </button>
+      </div>
     </header>
     <div
       v-if="status !== 'idle'"
@@ -305,7 +308,7 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
       Transform rules currently support JavaScript, TypeScript and CSS.
     </p>
     <div v-else class="transform-editors" min-h-0 min-w-0 flex-1>
-      <div flex="~ col" min-h-0 min-w-0>
+      <div class="transform-editor-pane" flex="~ col" min-h-0 min-w-0>
         <div px3 py1 text-xs text-soft>
           {{
             customEnabled ? 'TypeScript transformer · npm imports via esm.sh' : remoteEnabled
@@ -363,13 +366,13 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
           min-h-0
           flex-1
         />
-        <p v-else-if="!customEnabled" p3 text-sm text-soft>
+        <p v-else-if="remoteEnabled" p3 text-sm text-soft>
           Loads @babel/standalone on demand. React preset for JavaScript,
           TypeScript preset for TS. External code runs in a Worker, which is not
           a security sandbox. Requires CDN access and CSP permission.
         </p>
       </div>
-      <div flex="~ col" min-h-0 min-w-0>
+      <div class="transform-editor-pane" flex="~ col" min-h-0 min-w-0>
         <div flex="~ y-center" justify-between gap2 px3 py1 text-xs text-soft>
           <span>{{
             outputMode === 'preview' ? 'Transformed output' : 'Original source'
@@ -422,9 +425,9 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
       <span>{{ elapsedMs }} ms</span>
       <span text-green-600>+{{ additions }} lines</span>
       <span text-red-600>-{{ removals }} lines</span>
-      <span text-soft>Apply updates the source and reparses the AST.</span>
+
     </div>
-    <div v-if="changes.length && dirty" border-t border-base px3 py2 text-xs>
+    <div v-if="changes.length && dirty" class="transform-details" border-t border-base px3 py2 text-xs>
       <details>
         <summary cursor-pointer>Inspect changed source ranges</summary>
         <div
@@ -462,9 +465,12 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
 </template>
 
 <style scoped>
-.transform-workspace {
-  min-height: 18rem;
-}
+.transform-workspace { min-height: 0; max-width: 100%; }
+.transform-header { flex: 0 0 auto; }
+.transform-editor-pane { overflow: hidden; }
+.transform-editor-pane > :deep(.cm-editor) { min-height: 0; max-width: 100%; }
+.transform-details { max-height: 7rem; overflow-y: auto; }
+
 .transform-editors {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -475,7 +481,7 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled
 @media (max-width: 640px) {
   .transform-editors {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(10rem, 1fr) minmax(10rem, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
   .transform-editors > div + div {
     border-left: 0;
