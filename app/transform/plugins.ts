@@ -20,7 +20,7 @@ export const transformPlugins: readonly TransformPlugin[] = [
     description:
       'AST-aware identifier replacements for JS/TS, declaration properties for CSS',
     languages: ['javascript', 'typescript', 'css'],
-    defaultConfig: String.raw`[\n  { "find": "oldName", "replace": "newName" }\n]`,
+    defaultConfig: JSON.stringify([{ find: 'oldName', replace: 'newName' }], null, 2),
     run: async (source, language, config) => {
       const { transformSource } = await import('./engine')
       return transformSource(source, language, config)
