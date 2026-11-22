@@ -9,7 +9,10 @@ export interface TransformerTemplate {
 /** Editable examples: every template exports a function that accepts and returns source text. */
 export const transformerTemplates: readonly TransformerTemplate[] = [
   {
-    id: 'original-postcss', label: 'Original AST Explorer · PostCSS visitor', family: 'PostCSS', language: 'css',
+    id: 'original-postcss',
+    label: 'Original AST Explorer · PostCSS visitor',
+    family: 'PostCSS',
+    language: 'css',
     source: `import postcss from 'postcss@8.5.3'
 
 // Adapted from fkling/astexplorer: css/transformers/postcss/codeExample.txt
@@ -30,7 +33,10 @@ export default async function transform(source: string): Promise<string> {
 }`,
   },
   {
-    id: 'original-babel7', label: 'Original AST Explorer · Babel 7 visitor', family: 'Babel', language: 'javascript',
+    id: 'original-babel7',
+    label: 'Original AST Explorer · Babel 7 visitor',
+    family: 'Babel',
+    language: 'javascript',
     source: `import Babel from '@babel/standalone@7.26.9'
 
 // Adapted from fkling/astexplorer: js/transformers/babel7/codeExample.txt
@@ -49,7 +55,10 @@ export default function transform(source: string): string {
 }`,
   },
   {
-    id: 'original-typescript', label: 'Original AST Explorer · TypeScript visitor', family: 'TypeScript', language: 'typescript',
+    id: 'original-typescript',
+    label: 'Original AST Explorer · TypeScript visitor',
+    family: 'TypeScript',
+    language: 'typescript',
     source: `import ts from 'typescript@5.9.3'
 
 // Adapted from fkling/astexplorer: js/transformers/typescript/codeExample.txt

@@ -10,10 +10,10 @@ The original registry (`website/src/parsers/index.js`) discovers transformer fol
 
 ### Adapted examples
 
-| Upstream example | Catalog ID | Execution contract |
-| --- | --- | --- |
-| `css/transformers/postcss/codeExample.txt` | `original-postcss` | PostCSS plugin factory wrapped in a source-to-source transform |
-| `js/transformers/babel7/codeExample.txt` | `original-babel7` | Babel plugin visitor wrapped in a source-to-source transform |
+| Upstream example                             | Catalog ID            | Execution contract                                                      |
+| -------------------------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| `css/transformers/postcss/codeExample.txt`   | `original-postcss`    | PostCSS plugin factory wrapped in a source-to-source transform          |
+| `js/transformers/babel7/codeExample.txt`     | `original-babel7`     | Babel plugin visitor wrapped in a source-to-source transform            |
 | `js/transformers/typescript/codeExample.txt` | `original-typescript` | TypeScript AST visitor; program/type-checker features are not preserved |
 
 Other upstream transformer families include jscodeshift, recast, ESLint, Prettier, TSLint and Babel macros. These require dedicated runtime adapters and must not be represented as working until implemented and verified.
