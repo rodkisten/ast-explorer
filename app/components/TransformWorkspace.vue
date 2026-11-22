@@ -9,6 +9,7 @@ const props = defineProps<{ language: MonacoLanguage }>()
 const emit = defineEmits<{ close: [] }>()
 const rules = ref('[\n  { "find": "oldName", "replace": "newName" }\n]')
 const output = ref('')
+const outputMode = ref<'preview' | 'source'>('preview')
 const diagnostics = ref<string[]>([])
 const busy = ref(false)
 const dirty = ref(false)
@@ -63,7 +64,7 @@ watch([code, () => props.language, rules], () => {
   <section class="transform-workspace" flex="~ col" h-full min-h-0 min-w-0 border-t border-base>
     <header flex="~ y-center wrap" gap2 border-b border-base px3 py2>
       <strong text-sm>Transform workspace</strong>
-      <span text-xs text-soft>AST-aware identifier / CSS property rules</span>
+      <span text-xs text-soft>Run AST transforms, inspect output, then apply</span>
       <div flex-1 />
       <button pill-button :disabled="!supported || busy" @click="run">
         {{ busy ? 'Running…' : 'Run transform' }}
@@ -84,8 +85,15 @@ watch([code, () => props.language, rules], () => {
         <CodeEditor v-model="rules" language="json" flex-1 min-h-0 />
       </div>
       <div flex="~ col" min-h-0 min-w-0>
-        <div px3 py1 text-xs text-soft>Output preview</div>
-        <CodeEditor v-model="output" :language="language" flex-1 min-h-0 />
+        <div flex="~ y-center" justify-between gap2 px3 py1 text-xs text-soft>
+          <span>{{ outputMode === 'preview' ? 'Transformed output' : 'Original source' }}</span>
+          <select v-model="outputMode" aria-label="Compare transform output" rounded border border-base bg-base px2 py1>
+            <option value="preview">Output</option>
+            <option value="source">Before</option>
+          </select>
+        </div>
+        <CodeEditor v-if="outputMode === 'preview'" v-model="output" :language="language" flex-1 min-h-0 />
+        <CodeEditor v-else :model-value="previewSource" :language="language" flex-1 min-h-0 />
       </div>
     </div>
     <div v-if="dirty" flex="~ y-center wrap" gap3 border-t border-base px3 py2 text-xs>

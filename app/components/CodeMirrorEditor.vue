@@ -61,7 +61,7 @@ function updateSelection(selection: EditorSelection) {
   const editor = view.value
   if (!editor) return
   const length = editor.state.doc.length
-  editor.dispatch({ selection: { anchor: Math.min(length, Math.max(0, selection.anchor)), head: Math.min(length, Math.max(0, selection.head)) }, scrollIntoView: true })
+  editor.dispatch({ selection: { anchor: Math.min(length, Math.max(0, selection.anchor)), head: Math.min(length, Math.max(0, selection.head)) } })
 }
 
 onMounted(() => {
@@ -124,10 +124,11 @@ watch(code, (value) => {
   }
 })
 watch(() => props.language, language => adapter.value?.setLanguage(language))
-watch(() => outputHoverRange.value, (range) => {
+watch(() => outputHoverRange.value, () => {
   const editor = view.value
   if (!editor || !props.input) return
-  editor.dispatch({ effects: range ? [refreshHover.of(), EditorView.scrollIntoView(Math.min(editor.state.doc.length, Math.max(0, range[0])), { y: 'center' })] : [refreshHover.of()] })
+  // Inspector hover must never steal scroll, focus, selection, or the mobile keyboard.
+  editor.dispatch({ effects: refreshHover.of() })
 })
 onBeforeUnmount(() => {
   adapter.value?.dispose()
