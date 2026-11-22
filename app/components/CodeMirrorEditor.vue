@@ -138,7 +138,7 @@ defineExpose({ adapter })
 </script>
 
 <template>
-  <div ref="element" class="codemirror-host" h-full min-h-0 w-full />
+  <div ref="element" class="codemirror-host" h-full min-h-0 w-full role="region" aria-label="CodeMirror 6 code editor" />
 </template>
 
 <style scoped>

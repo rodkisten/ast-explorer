@@ -10,6 +10,10 @@ import { parserOptions } from '~/state/parser/options'
 import { currentParser } from '~/state/parser/parser'
 
 const showTransforms = ref(false)
+const editorChoices = [
+  { id: 'codemirror', label: 'CodeMirror 6' },
+  { id: 'monaco', label: 'Monaco' },
+] as const
 
 const language = computed(() => {
   if (typeof currentParser.value.editorLanguage === 'string') {
@@ -25,31 +29,25 @@ function showSettings() {
 
 <template>
   <div relative flex="~ col" h-full min-h-0>
-    <button
-      pill-button
-      absolute
-      left-3
-      top-2
-      z-100
-      text-xs
-      @click="showTransforms = !showTransforms"
-    >
-      {{ showTransforms ? 'Hide transforms' : 'Transforms' }}
-    </button>
-    <label absolute left-32 top-2 z-100 flex items-center gap1 text-xs>
-      <span>Editor</span>
-      <select v-model="editorProvider" aria-label="Editor provider" rounded border border-base bg-base px2 py1>
-        <option value="monaco">Monaco</option>
-        <option value="codemirror">CodeMirror 6</option>
-      </select>
-    </label>
+    <div class="editor-toolbar" flex="~ y-center wrap" gap2 border-b border-base px3 py2>
+      <label flex="~ y-center" gap2 text-xs>
+        <span>Editor</span>
+        <select v-model="editorProvider" aria-label="Editor provider" rounded border border-base bg-base px2 py1>
+          <option v-for="choice in editorChoices" :key="choice.id" :value="choice.id">{{ choice.label }}</option>
+        </select>
+      </label>
+      <button pill-button text-xs :aria-expanded="showTransforms" @click="showTransforms = !showTransforms">
+        {{ showTransforms ? 'Hide transforms' : 'Transform workspace' }}
+      </button>
+      <span text-xs text-soft>{{ editorProvider === 'codemirror' ? 'CodeMirror 6 active' : 'Monaco active' }}</span>
+    </div>
     <AppTooltip text="Editor Settings">
       <button
         aria-label="Editor Settings"
         p="0.8"
         absolute
         right-5
-        top-2
+        top-14
         z-100
         nav-button
         text-sm

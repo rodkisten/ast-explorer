@@ -16,6 +16,9 @@ const previewSource = ref('')
 const previewRules = ref('')
 const previewLanguage = ref<MonacoLanguage>()
 const supported = computed(() => supportsTransform(props.language))
+const changed = computed(() => output.value !== previewSource.value)
+const additions = computed(() => Math.max(0, output.value.split('\n').length - previewSource.value.split('\n').length))
+const removals = computed(() => Math.max(0, previewSource.value.split('\n').length - output.value.split('\n').length))
 let generation = 0
 
 async function run() {
@@ -65,7 +68,7 @@ watch([code, () => props.language, rules], () => {
       <button pill-button :disabled="!supported || busy" @click="run">
         {{ busy ? 'Running…' : 'Run transform' }}
       </button>
-      <button pill-button :disabled="!dirty || diagnostics.length > 0 || code !== previewSource || rules !== previewRules || language !== previewLanguage" @click="apply">
+      <button pill-button :disabled="!dirty || !changed || diagnostics.length > 0 || code !== previewSource || rules !== previewRules || language !== previewLanguage" @click="apply">
         Apply
       </button>
       <button aria-label="Close transform workspace" nav-button @click="emit('close')">
@@ -85,7 +88,12 @@ watch([code, () => props.language, rules], () => {
         <CodeEditor v-model="output" :language="language" flex-1 min-h-0 />
       </div>
     </div>
-    <p v-if="dirty" px3 py1 text-xs text-soft>Preview ready. Apply updates the source editor and AST.</p>
+    <div v-if="dirty" flex="~ y-center wrap" gap3 border-t border-base px3 py2 text-xs>
+      <span>{{ changed ? 'Changes detected' : 'No changes to apply' }}</span>
+      <span text-green-600>+{{ additions }} lines</span>
+      <span text-red-600>-{{ removals }} lines</span>
+      <span text-soft>Apply updates the source and reparses the AST.</span>
+    </div>
     <div v-if="diagnostics.length" role="alert" px3 py2 text-sm text-red-600 dark:text-red-400>
       <div v-for="(message, index) in diagnostics" :key="index">{{ message }}</div>
     </div>
