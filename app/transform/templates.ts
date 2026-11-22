@@ -97,13 +97,13 @@ export default function transform(source: string): string {
 
 export default function transform(source: string): string {
   const file = ts.createSourceFile('input.ts', source, ts.ScriptTarget.Latest, true)
-  const transformer = (context: unknown) => (root: unknown) => ts.visitNode(root, function visit(node: unknown): unknown {
+  const transformer: ts.TransformerFactory<ts.SourceFile> = (context) => (root) => ts.visitNode(root, function visit(node: ts.Node): ts.VisitResult<ts.Node> {
     if (ts.isIdentifier(node) && node.text === 'oldName')
       return ts.factory.createIdentifier('newName')
     return ts.visitEachChild(node, visit, context)
   })
   const result = ts.transform(file, [transformer])
-  try { return ts.createPrinter().printFile(result.transformed[0] as ts.SourceFile) }
+  try { return ts.createPrinter().printFile(result.transformed[0]) }
   finally { result.dispose() }
 }`,
   },
