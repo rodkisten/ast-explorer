@@ -5,6 +5,8 @@ import { code } from '~/state/editor'
 import { supportsTransform } from '~/transform/engine'
 import { getTransformPlugin, transformPlugins } from '~/transform/plugins'
 import { runRemoteBabel } from '~/transform/remote'
+import { runCustomTransformer } from '~/transform/custom-runner'
+import { calculateChanges } from '~/transform/runner'
 import { executeTransform, type TransformChange } from '~/transform/runner'
 import type { MonacoLanguage } from '~/parser'
 
@@ -12,6 +14,14 @@ const props = defineProps<{ language: MonacoLanguage }>()
 const emit = defineEmits<{ close: [] }>()
 const pluginId = ref('rename-symbols')
 const remoteEnabled = ref(false)
+const customEnabled = ref(false)
+const customCode = ref(`import postcss from 'postcss@8.5.3'
+import autoprefixer from 'autoprefixer@10.4.21'
+
+export default async function transform(source: string): Promise<string> {
+  const result = await postcss([autoprefixer()]).process(source, { from: undefined })
+  return result.css
+}`)
 const plugin = computed(() => getTransformPlugin(pluginId.value))
 const availablePlugins = computed(() =>
   transformPlugins.filter((item) =>
@@ -36,7 +46,7 @@ const isCdnPlugin = computed(() => pluginId.value.startsWith('css-'))
 const renameFrom = ref('oldName')
 const renameTo = ref('newName')
 const isRename = computed(
-  () => !remoteEnabled.value && pluginId.value === 'rename-symbols',
+  () => !customEnabled.value && !remoteEnabled.value && pluginId.value === 'rename-symbols',
 )
 watch([renameFrom, renameTo], () => {
   if (isRename.value)
@@ -49,6 +59,7 @@ watch([renameFrom, renameTo], () => {
 const dirty = ref(false)
 const previewSource = ref('')
 const previewRules = ref('')
+const previewCustomCode = ref('')
 const previewLanguage = ref<MonacoLanguage>()
 const supported = computed(() => supportsTransform(props.language))
 const changed = computed(() => output.value !== previewSource.value)
@@ -100,7 +111,7 @@ async function loadExample() {
 async function run() {
   if (
     !supportsTransform(props.language) ||
-    (!remoteEnabled.value &&
+    (!customEnabled.value && !remoteEnabled.value &&
       (!plugin.value || !plugin.value.languages.includes(props.language)))
   )
     return
@@ -111,7 +122,9 @@ async function run() {
   status.value = 'loading'
   diagnostics.value = []
   try {
-    const result = remoteEnabled.value
+    const result = customEnabled.value
+      ? await runCustomTransformer(code.value, customCode.value, controller.signal).then((result) => ({ ...result, changes: calculateChanges(code.value, result.output), elapsedMs: 0 }))
+      : remoteEnabled.value
       ? await runRemoteBabel({
           source: code.value,
           language: props.language,
@@ -131,6 +144,7 @@ async function run() {
     elapsedMs.value = result.elapsedMs
     previewSource.value = code.value
     previewRules.value = rules.value
+    previewCustomCode.value = customCode.value
     previewLanguage.value = props.language
     dirty.value = result.diagnostics.length === 0
     status.value = result.diagnostics.length
@@ -153,7 +167,7 @@ function apply() {
     !dirty.value ||
     diagnostics.value.length ||
     code.value !== previewSource.value ||
-    rules.value !== previewRules.value ||
+    (customEnabled.value ? customCode.value !== previewCustomCode.value : rules.value !== previewRules.value) ||
     props.language !== previewLanguage.value
   )
     return
@@ -166,7 +180,7 @@ watch(pluginId, () => {
   rules.value = plugin.value?.defaultConfig ?? '{}'
   showRawConfig.value = false
 })
-watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
+watch([code, () => props.language, rules, pluginId, remoteEnabled, customEnabled, customCode], () => {
   generation++
   controller?.abort()
   changes.value = []
@@ -190,12 +204,13 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
   >
     <header flex="~ y-center wrap" gap2 border-b border-base px3 py2>
       <strong text-sm>Transform workspace</strong>
-      <label flex="~ y-center" gap1 text-xs
+      <label flex="~ y-center" gap1 text-xs><input v-model="customEnabled" type="checkbox" @change="remoteEnabled = false" /> TypeScript transformer (CDN)</label>
+      <label v-if="!customEnabled" flex="~ y-center" gap1 text-xs
         ><input v-model="remoteEnabled" type="checkbox" /> CDN Babel
         (experimental)</label
       >
       <select
-        v-if="!remoteEnabled"
+        v-if="!remoteEnabled && !customEnabled"
         v-model="pluginId"
         aria-label="Transform plugin"
         border
@@ -225,8 +240,8 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
         pill-button
         :disabled="
           !supported ||
-          (!remoteEnabled && !plugin) ||
-          (remoteEnabled && language === 'css') ||
+          (!customEnabled && !remoteEnabled && !plugin) ||
+          (!customEnabled && remoteEnabled && language === 'css') ||
           busy
         "
         @click="run"
@@ -241,7 +256,7 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
           !changed ||
           diagnostics.length > 0 ||
           code !== previewSource ||
-          rules !== previewRules ||
+          (customEnabled ? customCode !== previewCustomCode : rules !== previewRules) ||
           language !== previewLanguage
         "
         @click="apply"
@@ -293,11 +308,12 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
       <div flex="~ col" min-h-0 min-w-0>
         <div px3 py1 text-xs text-soft>
           {{
-            remoteEnabled
+            customEnabled ? 'TypeScript transformer · npm imports via esm.sh' : remoteEnabled
               ? 'Babel via esm.sh · fixed version · runs in a worker'
               : `${plugin?.label} · Configuration (JSON)`
           }}
         </div>
+        <CodeEditor v-if="customEnabled" v-model="customCode" language="typescript" min-h-0 flex-1 />
         <div v-if="isRename && !showRawConfig" flex="~ col" gap3 p3 text-xs>
           <label flex="~ col" gap1
             ><span text-soft>Find identifier / property</span
@@ -336,18 +352,18 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
         >
           Visual fields
         </button>
-        <p v-if="isCdnPlugin" p3 text-xs text-soft>
+        <p v-if="isCdnPlugin && !customEnabled" p3 text-xs text-soft>
           Loads a pinned PostCSS transformer from esm.sh on demand. First run
           may take longer. CDN access and CSP permission required.
         </p>
         <CodeEditor
-          v-if="!remoteEnabled && !isCdnPlugin && (!isRename || showRawConfig)"
+          v-if="!customEnabled && !remoteEnabled && !isCdnPlugin && (!isRename || showRawConfig)"
           v-model="rules"
           language="json"
           min-h-0
           flex-1
         />
-        <p v-else p3 text-sm text-soft>
+        <p v-else-if="!customEnabled" p3 text-sm text-soft>
           Loads @babel/standalone on demand. React preset for JavaScript,
           TypeScript preset for TS. External code runs in a Worker, which is not
           a security sandbox. Requires CDN access and CSP permission.
