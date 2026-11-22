@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import CodeEditor from '~/components/CodeEditor.vue'
 import { code } from '~/state/editor'
 import { supportsTransform } from '~/transform/engine'
@@ -48,7 +48,7 @@ const removals = computed(() =>
 )
 let generation = 0
 
-function loadExample() {
+async function loadExample() {
   remoteEnabled.value = false
   pluginId.value = 'rename-symbols'
   if (props.language === 'css') {
@@ -58,7 +58,8 @@ function loadExample() {
     code.value = 'const oldName = 42;\\nconsole.log(oldName);\\nfunction read() { return oldName; }'.replaceAll('\\n', '\n')
     rules.value = JSON.stringify([{ find: 'oldName', replace: 'newName' }], null, 2)
   }
-  void run()
+  await nextTick()
+  await run()
 }
 
 async function run() {
