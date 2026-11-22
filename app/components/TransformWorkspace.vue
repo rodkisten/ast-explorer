@@ -28,14 +28,22 @@ const changes = ref<TransformChange[]>([])
 const elapsedMs = ref(0)
 let controller: AbortController | undefined
 const busy = ref(false)
-const status = ref<'idle' | 'loading' | 'success' | 'unchanged' | 'error' | 'applied'>('idle')
+const status = ref<
+  'idle' | 'loading' | 'success' | 'unchanged' | 'error' | 'applied'
+>('idle')
 const showRawConfig = ref(false)
 const renameFrom = ref('oldName')
 const renameTo = ref('newName')
-const isRename = computed(() => !remoteEnabled.value && pluginId.value === 'rename-symbols')
+const isRename = computed(
+  () => !remoteEnabled.value && pluginId.value === 'rename-symbols',
+)
 watch([renameFrom, renameTo], () => {
   if (isRename.value)
-    rules.value = JSON.stringify([{ find: renameFrom.value, replace: renameTo.value }], null, 2)
+    rules.value = JSON.stringify(
+      [{ find: renameFrom.value, replace: renameTo.value }],
+      null,
+      2,
+    )
 })
 const dirty = ref(false)
 const previewSource = ref('')
@@ -64,7 +72,11 @@ async function loadExample() {
     code.value = '.card { color: rebeccapurple; margin: 1rem; }'
     renameFrom.value = 'color'
     renameTo.value = 'background-color'
-    rules.value = JSON.stringify([{ find: renameFrom.value, replace: renameTo.value }], null, 2)
+    rules.value = JSON.stringify(
+      [{ find: renameFrom.value, replace: renameTo.value }],
+      null,
+      2,
+    )
   } else {
     code.value =
       'const oldName = 42;\\nconsole.log(oldName);\\nfunction read() { return oldName; }'.replaceAll(
@@ -73,7 +85,11 @@ async function loadExample() {
       )
     renameFrom.value = 'oldName'
     renameTo.value = 'newName'
-    rules.value = JSON.stringify([{ find: renameFrom.value, replace: renameTo.value }], null, 2)
+    rules.value = JSON.stringify(
+      [{ find: renameFrom.value, replace: renameTo.value }],
+      null,
+      2,
+    )
   }
   await nextTick()
   await run()
@@ -115,7 +131,11 @@ async function run() {
     previewRules.value = rules.value
     previewLanguage.value = props.language
     dirty.value = result.diagnostics.length === 0
-    status.value = result.diagnostics.length ? 'error' : result.output === code.value ? 'unchanged' : 'success'
+    status.value = result.diagnostics.length
+      ? 'error'
+      : result.output === code.value
+        ? 'unchanged'
+        : 'success'
   } catch (error) {
     if (id !== generation) return
     diagnostics.value = [error instanceof Error ? error.message : String(error)]
@@ -234,11 +254,35 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
         <span i-ri:close-line />
       </button>
     </header>
-    <div v-if="status !== 'idle'" role="status" aria-live="polite" flex="~ y-center" gap2 px3 py1 text-xs :class="status === 'error' ? 'text-red-500' : 'text-soft'">
-      <span v-if="status === 'loading'" i-ri:loader-4-line class="animate-spin" />
+    <div
+      v-if="status !== 'idle'"
+      role="status"
+      aria-live="polite"
+      flex="~ y-center"
+      gap2
+      px3
+      py1
+      text-xs
+      :class="status === 'error' ? 'text-red-500' : 'text-soft'"
+    >
+      <span
+        v-if="status === 'loading'"
+        i-ri:loader-4-line
+        class="animate-spin"
+      />
       <span v-else-if="status === 'error'" i-ri:error-warning-line />
       <span v-else i-ri:checkbox-circle-line />
-      {{ status === 'loading' ? 'Loading and running transform…' : status === 'success' ? `Transform ready · ${changes.length} changed region(s) · ${elapsedMs} ms` : status === 'unchanged' ? 'Transform completed · no changes' : status === 'applied' ? 'Changes applied to source' : 'Transform failed · see diagnostics below' }}
+      {{
+        status === 'loading'
+          ? 'Loading and running transform…'
+          : status === 'success'
+            ? `Transform ready · ${changes.length} changed region(s) · ${elapsedMs} ms`
+            : status === 'unchanged'
+              ? 'Transform completed · no changes'
+              : status === 'applied'
+                ? 'Changes applied to source'
+                : 'Transform failed · see diagnostics below'
+      }}
     </div>
     <p v-if="!supported" px3 py2 text-sm text-soft>
       Transform rules currently support JavaScript, TypeScript and CSS.
@@ -253,11 +297,43 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
           }}
         </div>
         <div v-if="isRename && !showRawConfig" flex="~ col" gap3 p3 text-xs>
-          <label flex="~ col" gap1><span text-soft>Find identifier / property</span><input v-model="renameFrom" aria-label="Find name" border border-base rounded bg-base px2 py2 /></label>
-          <label flex="~ col" gap1><span text-soft>Replace with</span><input v-model="renameTo" aria-label="Replacement name" border border-base rounded bg-base px2 py2 /></label>
-          <button pill-button self-start @click="showRawConfig = true"><span i-ri:code-s-slash-line /> Advanced JSON</button>
+          <label flex="~ col" gap1
+            ><span text-soft>Find identifier / property</span
+            ><input
+              v-model="renameFrom"
+              aria-label="Find name"
+              border
+              border-base
+              rounded
+              bg-base
+              px2
+              py2
+          /></label>
+          <label flex="~ col" gap1
+            ><span text-soft>Replace with</span
+            ><input
+              v-model="renameTo"
+              aria-label="Replacement name"
+              border
+              border-base
+              rounded
+              bg-base
+              px2
+              py2
+          /></label>
+          <button pill-button self-start @click="showRawConfig = true">
+            <span i-ri:code-s-slash-line /> Advanced JSON
+          </button>
         </div>
-        <button v-if="isRename && showRawConfig" pill-button self-start mx3 @click="showRawConfig = false">Visual fields</button>
+        <button
+          v-if="isRename && showRawConfig"
+          mx3
+          pill-button
+          self-start
+          @click="showRawConfig = false"
+        >
+          Visual fields
+        </button>
         <CodeEditor
           v-if="!remoteEnabled && (!isRename || showRawConfig)"
           v-model="rules"
