@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, shallowRef, watch, watchEffect } from 'vue'
 import Loading from '~/components/Loading.vue'
 import { loadedMonaco, useMonacoLanguage } from '~/composables/monaco'
 import {
@@ -10,6 +10,8 @@ import {
 } from '~/state/editor'
 import { MonacoEditor } from '#components'
 import type * as Monaco from 'monaco-editor'
+import { createMonacoAdapter } from '~/editor/monaco-adapter'
+import type { EditorAdapter } from '~/editor/adapter'
 import type { MonacoLanguage } from '~/parser'
 
 const props = defineProps<{
@@ -22,13 +24,23 @@ const container = shallowRef<{
   $editor: Monaco.editor.IStandaloneCodeEditor | undefined
 }>()
 
+const adapter = shallowRef<EditorAdapter>()
+
+defineExpose({ adapter })
+
 const options = computed(() => getSharedMonacoOptions())
 const editorLanguage = useMonacoLanguage(() => props.language)
+
+onBeforeUnmount(() => {
+  adapter.value?.dispose()
+  adapter.value = undefined
+})
 
 watch(
   () => container.value?.$editor,
   (editor) => {
     if (!editor) return
+    adapter.value = createMonacoAdapter(editor)
     const monaco = loadedMonaco.value!
 
     editor.addAction({
