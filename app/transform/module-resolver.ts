@@ -6,7 +6,8 @@ export interface ModuleResolution {
 
 const nonBareSpecifier = /^(?:[./]|https?:|data:|blob:)/
 const bare = (specifier: string) => !nonBareSpecifier.test(specifier)
-const safePackage = /^(?:@[-\w.]+\/)?[-\w.]+(?:\/[-\w.]+)*(?:@[0-9][0-9A-Za-z.+-]*)?$/
+const safePackage =
+  /^(?:@[-\w.]+\/)?[-\w.]+(?:\/[-\w.]+)*(?:@\d[0-9A-Z.+-]*)?$/i
 
 export async function resolveTransformerImports(
   source: string,

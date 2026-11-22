@@ -9,7 +9,10 @@ export interface TransformerTemplate {
 /** Editable examples: every template exports a function that accepts and returns source text. */
 export const transformerTemplates: readonly TransformerTemplate[] = [
   {
-    id: 'postcss-autoprefixer', label: 'Autoprefixer', family: 'PostCSS', language: 'css',
+    id: 'postcss-autoprefixer',
+    label: 'Autoprefixer',
+    family: 'PostCSS',
+    language: 'css',
     source: `import postcss from 'postcss@8.5.3'
 import autoprefixer from 'autoprefixer@10.4.21'
 
@@ -19,7 +22,10 @@ export default async function transform(source: string): Promise<string> {
 }`,
   },
   {
-    id: 'postcss-preset-env', label: 'Preset Env', family: 'PostCSS', language: 'css',
+    id: 'postcss-preset-env',
+    label: 'Preset Env',
+    family: 'PostCSS',
+    language: 'css',
     source: `import postcss from 'postcss@8.5.3'
 import presetEnv from 'postcss-preset-env@10.2.4'
 
@@ -28,7 +34,10 @@ export default async function transform(source: string): Promise<string> {
 }`,
   },
   {
-    id: 'postcss-cssnano', label: 'cssnano', family: 'PostCSS', language: 'css',
+    id: 'postcss-cssnano',
+    label: 'cssnano',
+    family: 'PostCSS',
+    language: 'css',
     source: `import postcss from 'postcss@8.5.3'
 import cssnano from 'cssnano@7.0.7'
 
@@ -37,7 +46,10 @@ export default async function transform(source: string): Promise<string> {
 }`,
   },
   {
-    id: 'postcss-custom', label: 'Custom PostCSS visitor', family: 'PostCSS', language: 'css',
+    id: 'postcss-custom',
+    label: 'Custom PostCSS visitor',
+    family: 'PostCSS',
+    language: 'css',
     source: `import postcss from 'postcss@8.5.3'
 
 export default async function transform(source: string): Promise<string> {
@@ -51,7 +63,10 @@ export default async function transform(source: string): Promise<string> {
 }`,
   },
   {
-    id: 'babel-typescript', label: 'Strip TypeScript types', family: 'Babel', language: 'typescript',
+    id: 'babel-typescript',
+    label: 'Strip TypeScript types',
+    family: 'Babel',
+    language: 'typescript',
     source: `import Babel from '@babel/standalone@7.26.9'
 
 export default function transform(source: string): string {
@@ -59,7 +74,10 @@ export default function transform(source: string): string {
 }`,
   },
   {
-    id: 'babel-react', label: 'JSX transform', family: 'Babel', language: 'javascript',
+    id: 'babel-react',
+    label: 'JSX transform',
+    family: 'Babel',
+    language: 'javascript',
     source: `import Babel from '@babel/standalone@7.26.9'
 
 export default function transform(source: string): string {
@@ -67,7 +85,10 @@ export default function transform(source: string): string {
 }`,
   },
   {
-    id: 'babel-custom', label: 'Custom Babel visitor', family: 'Babel', language: 'javascript',
+    id: 'babel-custom',
+    label: 'Custom Babel visitor',
+    family: 'Babel',
+    language: 'javascript',
     source: `import Babel from '@babel/standalone@7.26.9'
 
 export default function transform(source: string): string {
@@ -82,7 +103,10 @@ export default function transform(source: string): string {
 }`,
   },
   {
-    id: 'typescript-transpile', label: 'Transpile TypeScript', family: 'TypeScript', language: 'typescript',
+    id: 'typescript-transpile',
+    label: 'Transpile TypeScript',
+    family: 'TypeScript',
+    language: 'typescript',
     source: `import ts from 'typescript@5.9.3'
 
 export default function transform(source: string): string {
@@ -92,7 +116,10 @@ export default function transform(source: string): string {
 }`,
   },
   {
-    id: 'typescript-ast', label: 'Custom TypeScript AST visitor', family: 'TypeScript', language: 'typescript',
+    id: 'typescript-ast',
+    label: 'Custom TypeScript AST visitor',
+    family: 'TypeScript',
+    language: 'typescript',
     source: `import ts from 'typescript@5.9.3'
 
 export default function transform(source: string): string {
