@@ -3,6 +3,8 @@ import { computed, ref, watch } from 'vue'
 import CodeEditor from '~/components/CodeEditor.vue'
 import { supportsTransform } from '~/transform/engine'
 import { getTransformPlugin, transformPlugins } from '~/transform/plugins'
+import { executeTransform } from '~/transform/runner'
+import type { TransformChange } from '~/transform/runner'
 import { code } from '~/state/editor'
 import type { MonacoLanguage } from '~/parser'
 
@@ -15,6 +17,9 @@ const rules = ref('[\n  { "find": "oldName", "replace": "newName" }\n]')
 const output = ref('')
 const outputMode = ref<'preview' | 'source'>('preview')
 const diagnostics = ref<string[]>([])
+const changes = ref<TransformChange[]>([])
+const elapsedMs = ref(0)
+let controller: AbortController | undefined
 const busy = ref(false)
 const dirty = ref(false)
 const previewSource = ref('')
@@ -29,13 +34,17 @@ let generation = 0
 async function run() {
   if (!supportsTransform(props.language) || !plugin.value || !plugin.value.languages.includes(props.language)) return
   const id = ++generation
+  controller?.abort()
+  controller = new AbortController()
   busy.value = true
   diagnostics.value = []
   try {
-    const result = await plugin.value.run(code.value, props.language, rules.value)
+    const result = await executeTransform({ pluginId: pluginId.value, source: code.value, language: props.language, config: rules.value, signal: controller.signal })
     if (id !== generation) return
     output.value = result.output
     diagnostics.value = result.diagnostics
+    changes.value = result.changes
+    elapsedMs.value = result.elapsedMs
     previewSource.value = code.value
     previewRules.value = rules.value
     previewLanguage.value = props.language
@@ -58,6 +67,8 @@ function apply() {
 watch(pluginId, () => { rules.value = plugin.value?.defaultConfig ?? '{}' })
 watch([code, () => props.language, rules, pluginId], () => {
   generation++
+  controller?.abort()
+  changes.value = []
   dirty.value = false
   output.value = ''
   diagnostics.value = []
@@ -105,10 +116,21 @@ watch([code, () => props.language, rules, pluginId], () => {
       </div>
     </div>
     <div v-if="dirty" flex="~ y-center wrap" gap3 border-t border-base px3 py2 text-xs>
-      <span>{{ changed ? 'Changes detected' : 'No changes to apply' }}</span>
+      <span>{{ changes.length }} changed region{{ changes.length === 1 ? '' : 's' }}</span>
+      <span>{{ elapsedMs }} ms</span>
       <span text-green-600>+{{ additions }} lines</span>
       <span text-red-600>-{{ removals }} lines</span>
       <span text-soft>Apply updates the source and reparses the AST.</span>
+    </div>
+    <div v-if="changes.length && dirty" border-t border-base px3 py2 text-xs>
+      <details>
+        <summary cursor-pointer>Inspect changed source ranges</summary>
+        <div v-for="(change, index) in changes" :key="index" mt2 flex="~ col" gap1>
+          <span text-soft>Original offsets {{ change.beforeStart }}–{{ change.beforeEnd }} → output {{ change.afterStart }}–{{ change.afterEnd }}</span>
+          <pre overflow-auto rounded bg-base p2 text-red-500>- {{ change.removed }}</pre>
+          <pre overflow-auto rounded bg-base p2 text-green-500>+ {{ change.inserted }}</pre>
+        </div>
+      </details>
     </div>
     <div v-if="diagnostics.length" role="alert" px3 py2 text-sm text-red-600 dark:text-red-400>
       <div v-for="(message, index) in diagnostics" :key="index">{{ message }}</div>
