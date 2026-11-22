@@ -17,7 +17,8 @@ export const transformPlugins: readonly TransformPlugin[] = [
   {
     id: 'css-autoprefixer',
     label: 'Autoprefixer · CDN',
-    description: 'Add vendor prefixes for selected browser targets using esm.sh',
+    description:
+      'Add vendor prefixes for selected browser targets using esm.sh',
     languages: ['css'],
     defaultConfig: '{}',
     run: async (source) => {

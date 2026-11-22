@@ -70,7 +70,8 @@ async function loadExample() {
   remoteEnabled.value = false
   pluginId.value = 'rename-symbols'
   if (props.language === 'css') {
-    code.value = '.card { display: flex; user-select: none; color: rebeccapurple; }'
+    code.value =
+      '.card { display: flex; user-select: none; color: rebeccapurple; }'
     renameFrom.value = 'color'
     renameTo.value = 'background-color'
     rules.value = JSON.stringify(
@@ -335,7 +336,10 @@ watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
         >
           Visual fields
         </button>
-        <p v-if="isCdnPlugin" p3 text-xs text-soft>Loads a pinned PostCSS transformer from esm.sh on demand. First run may take longer. CDN access and CSP permission required.</p>
+        <p v-if="isCdnPlugin" p3 text-xs text-soft>
+          Loads a pinned PostCSS transformer from esm.sh on demand. First run
+          may take longer. CDN access and CSP permission required.
+        </p>
         <CodeEditor
           v-if="!remoteEnabled && !isCdnPlugin && (!isRename || showRawConfig)"
           v-model="rules"

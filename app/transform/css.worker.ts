@@ -29,14 +29,26 @@ addEventListener('message', async (event: MessageEvent<RequestMessage>) => {
     const plugin = pluginModule.default
     if (typeof postcss !== 'function' || typeof plugin !== 'function')
       throw new Error('CDN module does not export a PostCSS transformer')
-    const options = transformer === 'autoprefixer'
-      ? { overrideBrowserslist: ['last 2 versions', 'Safari >= 15'] }
-      : transformer === 'preset-env'
-        ? { stage: 3, browsers: 'last 2 versions' }
-        : {}
-    const result = await postcss([plugin(options)]).process(source, { from: undefined })
-    postMessage({ id, output: result.css, diagnostics: result.warnings().map((warning: { text: string }) => warning.text) })
+    const options =
+      transformer === 'autoprefixer'
+        ? { overrideBrowserslist: ['last 2 versions', 'Safari >= 15'] }
+        : transformer === 'preset-env'
+          ? { stage: 3, browsers: 'last 2 versions' }
+          : {}
+    const result = await postcss([plugin(options)]).process(source, {
+      from: undefined,
+    })
+    postMessage({
+      id,
+      output: result.css,
+      diagnostics: result
+        .warnings()
+        .map((warning: { text: string }) => warning.text),
+    })
   } catch (error) {
-    postMessage({ id, error: error instanceof Error ? error.message : String(error) })
+    postMessage({
+      id,
+      error: error instanceof Error ? error.message : String(error),
+    })
   }
 })
