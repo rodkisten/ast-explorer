@@ -33,6 +33,6 @@ export interface EditorProviderDefinition {
 }
 
 export const editorProviders: EditorProviderDefinition[] = [
-  { id: 'monaco', label: 'Monaco', load: () => import('~/monaco/setup') },
-  { id: 'codemirror', label: 'CodeMirror 6', load: () => import('~/editor/codemirror') },
+  { id: 'monaco', label: 'Monaco', load: () => import('~/editor/monaco-adapter') },
+  { id: 'codemirror', label: 'CodeMirror 6', load: () => import('~/components/CodeMirrorEditor.vue') },
 ]

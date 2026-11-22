@@ -40,6 +40,7 @@ function showSettings() {
       <span>Editor</span>
       <select v-model="editorProvider" aria-label="Editor provider" rounded border border-base bg-base px2 py1>
         <option value="monaco">Monaco</option>
+        <option value="codemirror">CodeMirror 6</option>
       </select>
     </label>
     <AppTooltip text="Editor Settings">
