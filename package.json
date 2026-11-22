@@ -66,6 +66,7 @@
     "@types/css-tree": "catalog:parser",
     "@types/json-to-ast": "catalog:parser",
     "@typescript-eslint/parser": "catalog:parser",
+    "@typescript/ata": "catalog:",
     "@unocss/eslint-plugin": "catalog:",
     "@unocss/nuxt": "catalog:",
     "@vercel/analytics": "catalog:",
@@ -136,8 +137,7 @@
     "yaml": "catalog:parser",
     "yaml-eslint-parser": "catalog:parser",
     "yaml-unist-parser": "catalog:parser",
-    "yuku": "catalog:parser",
-    "@typescript/ata": "^0.9.8"
+    "yuku": "catalog:parser"
   },
   "prettier": "@sxzz/prettier-config"
 }

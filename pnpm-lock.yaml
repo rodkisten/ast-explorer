@@ -626,6 +626,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: catalog:parser
         version: 8.73.0(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
+      '@typescript/ata':
+        specifier: ^0.9.8
+        version: 0.9.8(typescript@6.0.3)
       '@unocss/eslint-plugin':
         specifier: 'catalog:'
         version: 66.13.0(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
@@ -2953,6 +2956,11 @@ packages:
   '@typescript-eslint/visitor-keys@8.73.0':
     resolution: {integrity: sha512-k4lsFVpRZICbltkIEEH4hZRkwXkqDF1GHBpClKQOHQY+RkoZAAuyc1ci3I6p+CB6v3U4jaHIUshc4RzzQXZWLg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript/ata@0.9.8':
+    resolution: {integrity: sha512-+M815CeDRJS5H5ciWfhFCKp25nNfF+LFWawWAaBhNlquFb2wS5IIMDI+2bKWN3GuU6mpj+FzySsOD29M4nG8Xg==}
+    peerDependencies:
+      typescript: '>=4.4.4'
 
   '@typescript/typescript-darwin-arm64@7.1.0-dev.20261116.1':
     resolution: {integrity: sha512-cIFWoytFFv33dqOGyv/SAccjuWDHHmtri2cQeudD2N8Szw80R8hHkOYM3xd8FWiY471yHUWvx4geCYoGWKZDbg==}
@@ -9142,6 +9150,10 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.73.0
       eslint-visitor-keys: 5.0.1
+
+  '@typescript/ata@0.9.8(typescript@6.0.3)':
+    dependencies:
+      typescript: 6.0.3
 
   '@typescript/typescript-darwin-arm64@7.1.0-dev.20261116.1':
     optional: true

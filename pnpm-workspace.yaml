@@ -39,6 +39,7 @@ catalog:
   '@shikijs/monaco': ^4.6.0
   '@sxzz/eslint-config': ^8.9.2
   '@sxzz/prettier-config': ^2.4.0
+  '@typescript/ata': ^0.9.8
   '@unocss/eslint-plugin': ^66.13.0
   '@unocss/nuxt': ^66.13.0
   '@vercel/analytics': ^2.0.1

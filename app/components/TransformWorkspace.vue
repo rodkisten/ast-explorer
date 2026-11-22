@@ -27,7 +27,9 @@ async function fetchTransformerTypes() {
   try {
     const libraries = await acquireTransformerTypes(customCode.value)
     acquiredTypes.value = libraries.map((lib) => lib.filename)
-    typeStatus.value = libraries.length ? `Downloaded ${libraries.length} declaration files` : 'No external declarations found'
+    typeStatus.value = libraries.length
+      ? `Downloaded ${libraries.length} declaration files`
+      : 'No external declarations found'
   } catch (error) {
     typeStatus.value = error instanceof Error ? error.message : String(error)
   }

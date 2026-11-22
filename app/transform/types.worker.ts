@@ -3,8 +3,14 @@
 import { setupTypeAcquisition } from '@typescript/ata'
 import ts from 'typescript'
 
-interface TypeLibrary { filename: string; content: string }
-interface TypeRequest { id: number; source: string }
+interface TypeLibrary {
+  filename: string
+  content: string
+}
+interface TypeRequest {
+  id: number
+  source: string
+}
 
 const logger = {
   log: () => undefined,
@@ -23,7 +29,7 @@ addEventListener('message', (event: MessageEvent<TypeRequest>) => {
     clearTimeout(timeout)
     postMessage({ id, libraries, error })
   }
-  const timeout = setTimeout(() => finish('Type acquisition timed out'), 20000)
+  const timeout = setTimeout(finish, 20000, 'Type acquisition timed out')
   try {
     const acquire = setupTypeAcquisition({
       projectName: 'AST Explorer transformers',
