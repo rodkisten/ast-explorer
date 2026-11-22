@@ -3,6 +3,9 @@ name: 🥊 Package & Shell Operations
 run-name: "🥊 ${{ inputs.operation }}${{ inputs.custom-command-order != 'none' && inputs.operation != 'custom' && format(' (+shell {0})', inputs.custom-command-order) || '' }} on 🌿 ${{ inputs.selected-branch || github.ref_name }}"
 
 on:
+  push:
+    paths:
+      - "package.json"
   workflow_dispatch:
     inputs:
       selected-branch:
