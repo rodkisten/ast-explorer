@@ -4,6 +4,7 @@ import CodeEditor from '~/components/CodeEditor.vue'
 import { supportsTransform } from '~/transform/engine'
 import { getTransformPlugin, transformPlugins } from '~/transform/plugins'
 import { executeTransform } from '~/transform/runner'
+import { runRemoteBabel } from '~/transform/remote'
 import type { TransformChange } from '~/transform/runner'
 import { code } from '~/state/editor'
 import type { MonacoLanguage } from '~/parser'
@@ -11,6 +12,7 @@ import type { MonacoLanguage } from '~/parser'
 const props = defineProps<{ language: MonacoLanguage }>()
 const emit = defineEmits<{ close: [] }>()
 const pluginId = ref('rename-symbols')
+const remoteEnabled = ref(false)
 const plugin = computed(() => getTransformPlugin(pluginId.value))
 const availablePlugins = computed(() => transformPlugins.filter(item => item.languages.includes(props.language as 'javascript' | 'typescript' | 'css')))
 const rules = ref('[\n  { "find": "oldName", "replace": "newName" }\n]')
@@ -32,14 +34,16 @@ const removals = computed(() => Math.max(0, previewSource.value.split('\n').leng
 let generation = 0
 
 async function run() {
-  if (!supportsTransform(props.language) || !plugin.value || !plugin.value.languages.includes(props.language)) return
+  if (!supportsTransform(props.language) || (!remoteEnabled.value && (!plugin.value || !plugin.value.languages.includes(props.language)))) return
   const id = ++generation
   controller?.abort()
   controller = new AbortController()
   busy.value = true
   diagnostics.value = []
   try {
-    const result = await executeTransform({ pluginId: pluginId.value, source: code.value, language: props.language, config: rules.value, signal: controller.signal })
+    const result = remoteEnabled.value
+      ? await runRemoteBabel({ source: code.value, language: props.language, signal: controller.signal })
+      : await executeTransform({ pluginId: pluginId.value, source: code.value, language: props.language, config: rules.value, signal: controller.signal })
     if (id !== generation) return
     output.value = result.output
     diagnostics.value = result.diagnostics
@@ -65,7 +69,7 @@ function apply() {
 }
 
 watch(pluginId, () => { rules.value = plugin.value?.defaultConfig ?? '{}' })
-watch([code, () => props.language, rules, pluginId], () => {
+watch([code, () => props.language, rules, pluginId, remoteEnabled], () => {
   generation++
   controller?.abort()
   changes.value = []
@@ -80,12 +84,13 @@ watch([code, () => props.language, rules, pluginId], () => {
   <section class="transform-workspace" flex="~ col" h-full min-h-0 min-w-0 border-t border-base>
     <header flex="~ y-center wrap" gap2 border-b border-base px3 py2>
       <strong text-sm>Transform workspace</strong>
-      <select v-model="pluginId" aria-label="Transform plugin" rounded border border-base bg-base px2 py1 text-xs>
+      <label flex="~ y-center" gap1 text-xs><input v-model="remoteEnabled" type="checkbox" /> CDN Babel (experimental)</label>
+      <select v-if="!remoteEnabled" v-model="pluginId" aria-label="Transform plugin" rounded border border-base bg-base px2 py1 text-xs>
         <option v-for="item in availablePlugins" :key="item.id" :value="item.id">{{ item.label }}</option>
       </select>
       <span text-xs text-soft>Run AST transforms, inspect output, then apply</span>
       <div flex-1 />
-      <button pill-button :disabled="!supported || !plugin || busy" @click="run">
+      <button pill-button :disabled="!supported || (!remoteEnabled && !plugin) || (remoteEnabled && language === 'css') || busy" @click="run">
         {{ busy ? 'Running…' : 'Run transform' }}
       </button>
       <button pill-button :disabled="!dirty || !changed || diagnostics.length > 0 || code !== previewSource || rules !== previewRules || language !== previewLanguage" @click="apply">
@@ -100,8 +105,9 @@ watch([code, () => props.language, rules, pluginId], () => {
     </p>
     <div v-else class="transform-editors" flex-1 min-h-0 min-w-0>
       <div flex="~ col" min-h-0 min-w-0>
-        <div px3 py1 text-xs text-soft>{{ plugin?.label }} · Configuration (JSON)</div>
-        <CodeEditor v-model="rules" language="json" flex-1 min-h-0 />
+        <div px3 py1 text-xs text-soft>{{ remoteEnabled ? 'Babel via esm.sh · fixed version · runs in a worker' : plugin?.label + ' · Configuration (JSON)' }}</div>
+        <CodeEditor v-if="!remoteEnabled" v-model="rules" language="json" flex-1 min-h-0 />
+        <p v-else p3 text-sm text-soft>Loads @babel/standalone on demand. React preset for JavaScript, TypeScript preset for TS. External code runs in a Worker, which is not a security sandbox. Requires CDN access and CSP permission.</p>
       </div>
       <div flex="~ col" min-h-0 min-w-0>
         <div flex="~ y-center" justify-between gap2 px3 py1 text-xs text-soft>
