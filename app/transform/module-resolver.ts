@@ -5,7 +5,7 @@ export interface ModuleResolution {
 }
 
 const bare = (specifier: string) => !/^(?:[./]|https?:|data:|blob:)/.test(specifier)
-const safePackage = /^(?:@[-\\w.]+\\/)?[-\\w.]+(?:\\/[-\\w.]+)*$/
+const safePackage = /^(?:@[-\w.]+\/)?[-\w.]+(?:\/[-\w.]+)*$/
 
 export async function resolveTransformerImports(source: string): Promise<ModuleResolution[]> {
   const ts = await import('typescript')
