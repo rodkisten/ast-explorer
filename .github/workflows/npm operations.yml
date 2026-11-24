@@ -1,4 +1,4 @@
-name: 🥊 Package & Shell Operations
+name: 🌳 AST · 🥊 Package & Shell Operations
 
 run-name: "🥊 ${{ inputs.operation }}${{ inputs.custom-command-order != 'none' && inputs.operation != 'custom' && format(' (+shell {0})', inputs.custom-command-order) || '' }} on 🌿 ${{ inputs.selected-branch || github.ref_name }}"
 
